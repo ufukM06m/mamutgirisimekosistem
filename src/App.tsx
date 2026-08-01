@@ -27,6 +27,38 @@ export default function App() {
     return false;
   })();
 
+  // Automatically broadcast content height to parent window (WordPress) for seamless auto-resizing iframe
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const sendHeight = () => {
+      const h = Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.clientHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight
+      );
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'MAMUTHUB_RESIZE', height: h }, '*');
+      }
+    };
+
+    sendHeight();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && document.body) {
+      resizeObserver = new ResizeObserver(() => sendHeight());
+      resizeObserver.observe(document.body);
+    }
+
+    window.addEventListener('resize', sendHeight);
+    return () => {
+      window.removeEventListener('resize', sendHeight);
+      if (resizeObserver) resizeObserver.disconnect();
+    };
+  }, [entities, isEmbedMode, isTestEmbedMode]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
