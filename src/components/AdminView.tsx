@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { EcosystemEntity, EntityType, CategoryType, StageType } from '../types';
+import { EntityAvatar } from './EntityAvatar';
 import { Plus, Edit3, Trash2, Download, Upload, Save, X, Search, Check, RefreshCw } from 'lucide-react';
 
 interface AdminViewProps {
@@ -212,12 +213,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
               {filteredEntities.map(item => (
                 <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="py-3 px-4 font-medium text-slate-900 flex items-center space-x-3">
-                    <img
-                      src={item.avatarUrl}
-                      alt=""
-                      className="w-8 h-8 rounded-lg object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+                    <EntityAvatar type={item.type} className="w-8 h-8 rounded-lg" iconSize="w-4 h-4" />
                     <div>
                       <div className="font-bold text-slate-900">{item.name}</div>
                       <div className="text-[11px] text-slate-400">{item.titleOrCompany}</div>
@@ -257,7 +253,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
       {/* Add / Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 relative my-8">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 relative my-auto max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setIsModalOpen(false)}
               className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
@@ -265,9 +261,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <X className="w-5 h-5" />
             </button>
 
-            <h2 className="text-xl font-bold text-slate-900 mb-4">
-              {editingEntity ? 'Kayıt Düzenle' : 'Yeni Girişimci / Yatırımcı Ekle'}
-            </h2>
+            <div className="flex items-center space-x-3 mb-4">
+              <EntityAvatar type={formData.type} className="w-10 h-10 rounded-xl" iconSize="w-5 h-5" />
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  {editingEntity ? 'Kayıt Düzenle' : 'Yeni Girişimci / Yatırımcı Ekle'}
+                </h2>
+                <p className="text-[11px] text-slate-500">Kategori ikon otomatik olarak belirlenir.</p>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

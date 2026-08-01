@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { EcosystemEntity, EntityType, CategoryType, StageType } from '../types';
+import { EntityAvatar } from './EntityAvatar';
 import { Search, Filter, Globe, Linkedin, Twitter, ExternalLink, Calendar, MapPin, Building2, Sparkles, User, Briefcase, ChevronRight, X, ArrowUpDown } from 'lucide-react';
 
 interface DirectoryViewProps {
@@ -15,20 +16,6 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
   const [selectedStage, setSelectedStage] = useState<StageType | 'Tümü'>('Tümü');
   const [activeEntityModal, setActiveEntityModal] = useState<EcosystemEntity | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  // Bring modal pop-up directly in front of the user when opened in iframe or desktop
-  useEffect(() => {
-    if (activeEntityModal && modalRef.current) {
-      try {
-        modalRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } catch {
-        // Fallback for older browsers
-        modalRef.current.scrollIntoView();
-      }
-    }
-  }, [activeEntityModal]);
 
   const categories: (CategoryType | 'Tümü')[] = [
     'Tümü',
@@ -179,12 +166,7 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
               <div className="space-y-4">
                 {/* Header Profile */}
                 <div className="flex items-start space-x-3.5">
-                  <img
-                    src={entity.avatarUrl}
-                    alt={entity.name}
-                    className="w-13 h-13 rounded-xl object-cover border-2 border-slate-100 shadow-sm shrink-0"
-                    referrerPolicy="no-referrer"
-                  />
+                  <EntityAvatar type={entity.type} className="w-12 h-12 rounded-xl" iconSize="w-6 h-6" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center space-x-1.5">
                       <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${
@@ -265,12 +247,7 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
                 {filteredEntities.map(entity => (
                   <tr key={entity.id} className="hover:bg-slate-50 transition-colors">
                     <td className="py-3 px-4 font-medium text-slate-900 flex items-center space-x-3">
-                      <img
-                        src={entity.avatarUrl}
-                        alt=""
-                        className="w-8 h-8 rounded-lg object-cover"
-                        referrerPolicy="no-referrer"
-                      />
+                      <EntityAvatar type={entity.type} className="w-8 h-8 rounded-lg" iconSize="w-4 h-4" />
                       <div>
                         <div className="font-bold text-slate-900">{entity.name}</div>
                         <div className="text-[11px] text-slate-400">{entity.titleOrCompany}</div>
@@ -306,12 +283,11 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
       {activeEntityModal && (
         <div 
           onClick={() => setActiveEntityModal(null)}
-          className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 overflow-y-auto pt-12 sm:pt-6"
+          className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
         >
           <div 
-            ref={modalRef}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150 my-auto"
+            className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150 my-auto max-h-[90vh] overflow-y-auto"
           >
             <button
               onClick={() => setActiveEntityModal(null)}
@@ -322,11 +298,10 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
 
             <div className="space-y-5">
               <div className="flex items-start space-x-4">
-                <img
-                  src={activeEntityModal.avatarUrl}
-                  alt={activeEntityModal.name}
-                  className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-md"
-                  referrerPolicy="no-referrer"
+                <EntityAvatar 
+                  type={activeEntityModal.type} 
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl" 
+                  iconSize="w-8 h-8 sm:w-10 sm:h-10" 
                 />
                 <div className="space-y-1 pt-1">
                   <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800">
