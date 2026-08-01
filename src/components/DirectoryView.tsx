@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { EcosystemEntity, EntityType, CategoryType, StageType } from '../types';
 import { Search, Filter, Globe, Linkedin, Twitter, ExternalLink, Calendar, MapPin, Building2, Sparkles, User, Briefcase, ChevronRight, X, ArrowUpDown } from 'lucide-react';
 
@@ -15,6 +15,20 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
   const [selectedStage, setSelectedStage] = useState<StageType | 'Tümü'>('Tümü');
   const [activeEntityModal, setActiveEntityModal] = useState<EcosystemEntity | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Bring modal pop-up directly in front of the user when opened in iframe or desktop
+  useEffect(() => {
+    if (activeEntityModal && modalRef.current) {
+      try {
+        modalRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch {
+        // Fallback for older browsers
+        modalRef.current.scrollIntoView();
+      }
+    }
+  }, [activeEntityModal]);
 
   const categories: (CategoryType | 'Tümü')[] = [
     'Tümü',
@@ -290,8 +304,15 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
 
       {/* Detail Modal */}
       {activeEntityModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150">
+        <div 
+          onClick={() => setActiveEntityModal(null)}
+          className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 overflow-y-auto pt-12 sm:pt-6"
+        >
+          <div 
+            ref={modalRef}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150 my-auto"
+          >
             <button
               onClick={() => setActiveEntityModal(null)}
               className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
