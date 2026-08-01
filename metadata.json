@@ -1,0 +1,6 @@
+{
+  "name": "Türkiye Girişimci & Yatırımcı Rehberi",
+  "description": "Türkiye'deki girişimciler ve yatırımcıların dinamik ve otomatik güncellenen veritabanı platformu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
