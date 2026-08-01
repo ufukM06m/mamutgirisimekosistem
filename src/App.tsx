@@ -32,24 +32,22 @@ export default function App() {
     if (typeof window === 'undefined') return;
 
     const sendHeight = () => {
-      const h = Math.max(
-        document.body.scrollHeight,
-        document.body.offsetHeight,
-        document.documentElement.clientHeight,
-        document.documentElement.scrollHeight,
-        document.documentElement.offsetHeight
-      );
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'MAMUTHUB_RESIZE', height: h }, '*');
+      const rootEl = document.getElementById('root');
+      if (!rootEl) return;
+      // Measure exact content height inside root, avoiding 100vh feedback loops
+      const contentHeight = Math.ceil(rootEl.scrollHeight || rootEl.getBoundingClientRect().height);
+      if (window.parent && window.parent !== window && contentHeight > 0) {
+        window.parent.postMessage({ type: 'MAMUTHUB_RESIZE', height: contentHeight }, '*');
       }
     };
 
     sendHeight();
 
     let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined' && document.body) {
+    const rootEl = document.getElementById('root');
+    if (typeof ResizeObserver !== 'undefined' && rootEl) {
       resizeObserver = new ResizeObserver(() => sendHeight());
-      resizeObserver.observe(document.body);
+      resizeObserver.observe(rootEl);
     }
 
     window.addEventListener('resize', sendHeight);
@@ -146,7 +144,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col antialiased">
+    <div className={`${isEmbedMode ? 'bg-slate-50' : 'min-h-screen bg-slate-50'} text-slate-900 font-sans flex flex-col antialiased`}>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-emerald-500/30 text-xs font-semibold animate-in slide-in-from-bottom-5 duration-200 flex items-center space-x-2">
