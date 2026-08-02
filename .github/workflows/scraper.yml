@@ -5,6 +5,9 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   scrape-and-update:
     runs-on: ubuntu-latest
@@ -17,9 +20,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Dependencies
-        run: npm ci
-
       - name: Run Scraper
         run: node scripts/auto-scraper.js
 
@@ -28,4 +28,5 @@ jobs:
           git config --global user.name "Mamuthub Auto Bot"
           git config --global user.email "bot@mamuthub.com"
           git add src/data/mockData.ts
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto update ecosystem data" && git push)
+          git commit -m "🤖 [BOT] Otomatik Ekosistem Veri Güncellemesi" || echo "Yeni değişiklik yok"
+          git push
