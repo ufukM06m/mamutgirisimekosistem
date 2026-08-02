@@ -2,8 +2,8 @@ name: Auto Scraper Bot
 
 on:
   schedule:
-    - cron: '0 3 * * *' # Her gün gece 03:00 TSİ
-  workflow_dispatch:      # Manuel tetikleme butonu
+    - cron: '0 3 * * *' # Her gece 03:00'te çalışır
+  workflow_dispatch: # GitHub panelinden elle tetikleme imkanı sağlar
 
 permissions:
   contents: write
@@ -20,10 +20,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Run Scraper
+      - name: Run Scraper Script
         run: node scripts/auto-scraper.js
 
-      - name: Commit and Push
+      - name: Commit and Push Updates
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -32,5 +32,5 @@ jobs:
             git commit -m "🤖 [BOT] Otomatik Ekosistem Veri Güncellemesi"
             git push
           else
-            echo "Güncellenecek yeni değişiklik yok."
+            echo "Güncellenecek yeni veri yok."
           fi
