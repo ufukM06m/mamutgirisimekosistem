@@ -301,10 +301,136 @@ export const INITIAL_ENTITIES: EcosystemEntity[] = [
     foundedYear: 2024,
     teamSize: '8',
     lastUpdated: '2026-07-26 11:00'
+  },
+  {
+    id: '21',
+    name: 'Picus Security',
+    titleOrCompany: 'Siber Saldırı Simülasyonu (BAS)',
+    type: 'Startup',
+    category: 'Siber Güvenlik',
+    city: 'Ankara',
+    description: 'Siber güvenlik doğrulama ve sürekli saldırı simülasyonu platformu. Ankara ODTÜ Teknokent çıkışlı, küresel alanda binlerce kurumsal müşterisi olan lider güvenlik girişimi.',
+    website: 'https://picussecurity.com',
+    avatarUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=300',
+    stage: 'Seri B+',
+    foundedYear: 2013,
+    teamSize: '150+',
+    lastUpdated: '2026-08-02 10:00'
+  },
+  {
+    id: '22',
+    name: 'Kunduz',
+    titleOrCompany: 'Yapay Zeka Destekli EdTech Platformu',
+    type: 'Startup',
+    category: 'Eğitim (EdTech)',
+    city: 'İstanbul',
+    description: 'Öğrencilere anında kişiselleştirilmiş soru çözümü ve rehberlik sunan, Türkiye ve Hindistan pazarlarında milyonlarca öğrenciye ulaşan eğitim platformu.',
+    website: 'https://kunduz.com',
+    avatarUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=300',
+    stage: 'Seri A',
+    foundedYear: 2016,
+    teamSize: '80+',
+    lastUpdated: '2026-08-01 14:20'
+  },
+  {
+    id: '23',
+    name: 'Doktar',
+    titleOrCompany: 'Dijital Tarım & AgriTech Teknolojileri',
+    type: 'Startup',
+    category: 'Tarım & Gıda (AgriTech)',
+    city: 'İstanbul',
+    description: 'Sensörler, uydu görüntüleri ve yapay zeka ile çiftçilere rekolte tahmini ve gübreleme optimizasyonu sunan akıllı tarım girişimi.',
+    website: 'https://doktar.com',
+    avatarUrl: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&q=80&w=300',
+    stage: 'Growth / Scale-up',
+    foundedYear: 2012,
+    teamSize: '60',
+    lastUpdated: '2026-07-30 16:10'
+  },
+  {
+    id: '24',
+    name: 'Biolive',
+    titleOrCompany: 'Biyoplastik & İklim Teknolojileri',
+    type: 'Startup',
+    category: 'İklim & Yeşil Teknoloji',
+    city: 'İstanbul',
+    description: 'Zeytin çekirdeği atıklarından biyoplastik hammadde üreten, karbon ayak izini azaltan ödüllü yeşil teknoloji girişim şirketi.',
+    website: 'https://biolive.com.tr',
+    avatarUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=300',
+    stage: 'Seri A',
+    foundedYear: 2017,
+    teamSize: '35',
+    lastUpdated: '2026-07-29 12:00'
+  },
+  {
+    id: '25',
+    name: 'Titra Teknoloji',
+    titleOrCompany: 'Otonom İHA & Savunma Sistemleri',
+    type: 'Startup',
+    category: 'Savunma & Uzay',
+    city: 'Ankara',
+    description: 'Türkiye\'nin ilk insansız helikopteri ALPİN\'i ve otonom sürü sistemlerini geliştiren yüksek teknoloji savunma şirketi.',
+    website: 'https://titra.com.tr',
+    avatarUrl: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&q=80&w=300',
+    stage: 'Growth / Scale-up',
+    foundedYear: 2020,
+    teamSize: '120',
+    lastUpdated: '2026-08-01 11:30'
+  },
+  {
+    id: '26',
+    name: 'Kolay İK',
+    titleOrCompany: 'Bulut Tabanlı İnsan Kaynakları (HRTech)',
+    type: 'Startup',
+    category: 'İnsan Kaynakları (HRTech)',
+    city: 'İstanbul',
+    description: 'Şirketlerin personel, izin, performans ve bordro süreçlerini tek ekrandan yönetmesini sağlayan Türkiye\'nin lider HR platformu.',
+    website: 'https://kolayik.com',
+    avatarUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=300',
+    stage: 'Seri A',
+    foundedYear: 2015,
+    teamSize: '75',
+    lastUpdated: '2026-07-28 09:40'
   }
 ];
 
 export const INITIAL_SCRAPER_LOGS: ScraperLog[] = [
+  {
+    id: 'log-1785683109521',
+    timestamp: '2026-08-02 15:05',
+    source: 'GitHub Action Bot (Otomatik)',
+    status: 'Başarılı',
+    itemsFetched: 3,
+    durationMs: 380,
+    memoryUsageMb: 42
+  },
+  {
+    id: 'log-1785682926958',
+    timestamp: '2026-08-02 15:02',
+    source: 'GitHub Action Bot (Otomatik)',
+    status: 'Başarılı',
+    itemsFetched: 3,
+    durationMs: 380,
+    memoryUsageMb: 42
+  },
+  {
+    id: 'log-1785681700311',
+    timestamp: '2026-08-02 14:41',
+    source: 'GitHub Action Bot (Otomatik)',
+    status: 'Başarılı',
+    itemsFetched: 3,
+    durationMs: 380,
+    memoryUsageMb: 42
+  },
+  {
+    id: 'log-1785681643859',
+    timestamp: '2026-08-02 14:40',
+    source: 'GitHub Action Bot (Otomatik)',
+    status: 'Başarılı',
+    itemsFetched: 3,
+    durationMs: 380,
+    memoryUsageMb: 2.4
+  },
   {
     id: 'log-1',
     timestamp: '2026-08-01 03:00:12',

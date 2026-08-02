@@ -25,30 +25,37 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   scrape-and-update:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          token: \${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-
-      - name: Install Dependencies
-        run: npm ci
+          node-version: '22'
 
       - name: Run Scraper
         run: node scripts/auto-scraper.js
 
       - name: Commit and Push
         run: |
-          git config --global user.name "Mamuthub Auto Bot"
-          git config --global user.email "bot@mamuthub.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add src/data/mockData.ts
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto update ecosystem data" && git push)
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "🤖 [BOT] Otomatik Ekosistem Veri Güncellemesi"
+            git push origin HEAD:\${{ github.ref_name || 'main' }}
+          else
+            echo "Güncellenecek yeni değişiklik yok."
+          fi
 `;
 
   const copyToClipboard = (text: string) => {
@@ -141,6 +148,22 @@ jobs:
         <pre className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono text-emerald-300 overflow-x-auto leading-relaxed max-h-64">
           {workflowYaml}
         </pre>
+
+        {/* GitHub Action Permission Error Notice */}
+        <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl p-4 space-y-2 text-xs text-amber-200">
+          <div className="font-bold flex items-center space-x-2 text-amber-300">
+            <span>⚠️ GitHub Action "Process completed with exit code 1" Hatası Alıyorsanız:</span>
+          </div>
+          <p className="text-amber-100/90 leading-relaxed">
+            GitHub varsayılan olarak botların reponuza otomatik commit/push atmasına izin vermez. İzni açmak için <strong>30 saniyelik şu adımı</strong> yapmanız gerekir:
+          </p>
+          <ol className="list-decimal list-inside space-y-1 text-amber-200/90 pl-1">
+            <li>GitHub Reponuzda üstteki <strong>Settings</strong> sekmesine tıklayın.</li>
+            <li>Sol menüden <strong>Actions</strong> &rarr; <strong>General</strong> seçin.</li>
+            <li>Sayfanın altındaki <strong>Workflow permissions</strong> bölümüne inin.</li>
+            <li><strong>"Read and write permissions"</strong> seçeneğini işaretleyin ve <strong>Save</strong> butonuna basın.</li>
+          </ol>
+        </div>
       </div>
 
       {/* Trigger & Config */}

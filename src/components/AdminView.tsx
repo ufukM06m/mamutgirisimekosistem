@@ -327,6 +327,16 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     <option value="Oyun & Eğlence">Oyun & Eğlence</option>
                     <option value="Sağlık & Biyo">Sağlık & Biyo</option>
                     <option value="Derin Teknoloji">Derin Teknoloji</option>
+                    <option value="Eğitim (EdTech)">Eğitim (EdTech)</option>
+                    <option value="İklim & Yeşil Teknoloji">İklim & Yeşil Teknoloji</option>
+                    <option value="Siber Güvenlik">Siber Güvenlik</option>
+                    <option value="Gayrimenkul (PropTech)">Gayrimenkul (PropTech)</option>
+                    <option value="İnsan Kaynakları (HRTech)">İnsan Kaynakları (HRTech)</option>
+                    <option value="Pazarlama (MarTech)">Pazarlama (MarTech)</option>
+                    <option value="Tarım & Gıda (AgriTech)">Tarım & Gıda (AgriTech)</option>
+                    <option value="Sigorta (InsurTech)">Sigorta (InsurTech)</option>
+                    <option value="Savunma & Uzay">Savunma & Uzay</option>
+                    <option value="Donanım & IoT">Donanım & IoT</option>
                   </select>
                 </div>
 

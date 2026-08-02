@@ -25,7 +25,17 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
     'E-Ticaret & Lojistik',
     'Oyun & Eğlence',
     'Sağlık & Biyo',
-    'Derin Teknoloji'
+    'Derin Teknoloji',
+    'Eğitim (EdTech)',
+    'İklim & Yeşil Teknoloji',
+    'Siber Güvenlik',
+    'Gayrimenkul (PropTech)',
+    'İnsan Kaynakları (HRTech)',
+    'Pazarlama (MarTech)',
+    'Tarım & Gıda (AgriTech)',
+    'Sigorta (InsurTech)',
+    'Savunma & Uzay',
+    'Donanım & IoT'
   ];
 
   const types: (EntityType | 'Tümü')[] = [
@@ -105,20 +115,20 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
         </div>
 
         {/* Filter Pills */}
-        <div className="space-y-3 pt-2 border-t border-slate-100">
+        <div className="space-y-3.5 pt-3 border-t border-slate-100">
           {/* Type Filter */}
-          <div className="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar text-xs">
-            <span className="font-semibold text-slate-500 flex items-center mr-1 shrink-0">
-              <Filter className="w-3.5 h-3.5 mr-1" /> Tür:
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="font-semibold text-slate-500 flex items-center mr-1 shrink-0 py-1">
+              <Filter className="w-3.5 h-3.5 mr-1 text-slate-600" /> Tür:
             </span>
             {types.map(t => (
               <button
                 key={t}
                 onClick={() => setSelectedType(t)}
-                className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all font-medium ${
+                className={`px-3 py-1 rounded-lg whitespace-nowrap transition-all font-medium ${
                   selectedType === t
                     ? 'bg-slate-900 text-white font-semibold shadow-sm'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60'
                 }`}
               >
                 {t}
@@ -127,23 +137,35 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
           </div>
 
           {/* Category Filter */}
-          <div className="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar text-xs">
-            <span className="font-semibold text-slate-500 flex items-center mr-1 shrink-0">
-              <Briefcase className="w-3.5 h-3.5 mr-1" /> Sektör:
-            </span>
-            {categories.map(c => (
-              <button
-                key={c}
-                onClick={() => setSelectedCategory(c)}
-                className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all font-medium ${
-                  selectedCategory === c
-                    ? 'bg-emerald-600 text-white font-semibold shadow-sm'
-                    : 'bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-900'
-                }`}
-              >
-                {c}
-              </button>
-            ))}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-500 flex items-center">
+                <Briefcase className="w-3.5 h-3.5 mr-1 text-emerald-600" /> Sektörler ({categories.length - 1}):
+              </span>
+              {selectedCategory !== 'Tümü' && (
+                <button
+                  onClick={() => setSelectedCategory('Tümü')}
+                  className="text-[11px] font-medium text-emerald-600 hover:text-emerald-800 underline"
+                >
+                  Filtreyi Temizle
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              {categories.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setSelectedCategory(c)}
+                  className={`px-2.5 py-1 rounded-lg transition-all font-medium ${
+                    selectedCategory === c
+                      ? 'bg-emerald-600 text-white font-semibold shadow-sm ring-2 ring-emerald-600/30'
+                      : 'bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 text-slate-700 border border-slate-200/80'
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

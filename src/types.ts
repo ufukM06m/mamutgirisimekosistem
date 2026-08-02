@@ -1,4 +1,21 @@
-export type CategoryType = 'AI & Veri' | 'SaaS & Yazılım' | 'FinTech' | 'E-Ticaret & Lojistik' | 'Oyun & Eğlence' | 'Sağlık & Biyo' | 'Derin Teknoloji';
+export type CategoryType =
+  | 'AI & Veri'
+  | 'SaaS & Yazılım'
+  | 'FinTech'
+  | 'E-Ticaret & Lojistik'
+  | 'Oyun & Eğlence'
+  | 'Sağlık & Biyo'
+  | 'Derin Teknoloji'
+  | 'Eğitim (EdTech)'
+  | 'İklim & Yeşil Teknoloji'
+  | 'Siber Güvenlik'
+  | 'Gayrimenkul (PropTech)'
+  | 'İnsan Kaynakları (HRTech)'
+  | 'Pazarlama (MarTech)'
+  | 'Tarım & Gıda (AgriTech)'
+  | 'Sigorta (InsurTech)'
+  | 'Savunma & Uzay'
+  | 'Donanım & IoT';
 
 export type EntityType = 'Girişimci' | 'Yatırımcı (VC)' | 'Melek Yatırımcı' | 'Startup' | 'Hızlandırıcı & Kuluçka';
 
