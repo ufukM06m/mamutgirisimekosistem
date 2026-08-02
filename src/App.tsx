@@ -319,6 +319,7 @@ export default function App() {
             onUpdateEntity={handleUpdateEntity}
             onDeleteEntity={handleDeleteEntity}
             onResetDefault={handleResetDefault}
+            onSyncWithRepo={handleSyncWithRepo}
           />
         )}
       </main>

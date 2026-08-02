@@ -9,6 +9,7 @@ interface AdminViewProps {
   onUpdateEntity: (entity: EcosystemEntity) => void;
   onDeleteEntity: (id: string) => void;
   onResetDefault: () => void;
+  onSyncWithRepo: () => void;
 }
 
 export const AdminView: React.FC<AdminViewProps> = ({
@@ -16,7 +17,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onAddEntity,
   onUpdateEntity,
   onDeleteEntity,
-  onResetDefault
+  onResetDefault,
+  onSyncWithRepo
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -174,9 +176,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <span>JSON</span>
           </button>
           <button
+            onClick={onSyncWithRepo}
+            className="bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold px-3 py-2 rounded-xl text-xs flex items-center space-x-1 transition-all border border-blue-200"
+            title="Manuel eklediğiniz firmaları korur, GitHub/Repo'daki yeni güncellemeleri ekler"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Repo Güncellemelerini Al</span>
+          </button>
+          <button
             onClick={onResetDefault}
-            className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 transition-colors"
-            title="Varsayılan Verileri Geri Yükle"
+            className="text-slate-400 hover:text-red-600 p-2 rounded-xl hover:bg-red-50 transition-colors"
+            title="Tüm verileri silip fabrika ayarlarına sıfırla (Onay ister)"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
