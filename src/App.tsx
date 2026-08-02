@@ -8,11 +8,55 @@ import { ScraperSyncView } from './components/ScraperSyncView';
 import { ArrowLeft } from 'lucide-react';
 
 export default function App() {
-  const [entities, setEntities] = useState<EcosystemEntity[]>(INITIAL_ENTITIES);
-  const [logs, setLogs] = useState<ScraperLog[]>(INITIAL_SCRAPER_LOGS);
+  const [entities, setEntities] = useState<EcosystemEntity[]>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('mamuthub_entities');
+        if (saved) return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to load entities from localStorage:', e);
+    }
+    return INITIAL_ENTITIES;
+  });
+
+  const [logs, setLogs] = useState<ScraperLog[]>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('mamuthub_logs');
+        if (saved) return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to load logs from localStorage:', e);
+    }
+    return INITIAL_SCRAPER_LOGS;
+  });
+
   const [activeTab, setActiveTab] = useState<ActiveTab>('directory');
   const [isScraping, setIsScraping] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Sync entities to localStorage
+  React.useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mamuthub_entities', JSON.stringify(entities));
+      }
+    } catch (e) {
+      console.error('Failed to save entities to localStorage:', e);
+    }
+  }, [entities]);
+
+  // Sync logs to localStorage
+  React.useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mamuthub_logs', JSON.stringify(logs));
+      }
+    } catch (e) {
+      console.error('Failed to save logs to localStorage:', e);
+    }
+  }, [logs]);
 
   // Check URL search parameters or window iframe context
   const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
@@ -34,7 +78,6 @@ export default function App() {
     const sendHeight = () => {
       const rootEl = document.getElementById('root');
       if (!rootEl) return;
-      // Measure exact content height inside root, avoiding 100vh feedback loops
       const contentHeight = Math.ceil(rootEl.scrollHeight || rootEl.getBoundingClientRect().height);
       if (window.parent && window.parent !== window && contentHeight > 0) {
         window.parent.postMessage({ type: 'MAMUTHUB_RESIZE', height: contentHeight }, '*');
@@ -69,7 +112,7 @@ export default function App() {
       lastUpdated: new Date().toISOString().replace('T', ' ').substring(0, 16)
     };
     setEntities(prev => [newEntity, ...prev]);
-    showToast(`"${newEntity.name}" başarıyla ekledi!`);
+    showToast(`"${newEntity.name}" başarıyla eklendi ve hafızaya kaydedildi!`);
   };
 
   const handleUpdateEntity = (updatedEntity: EcosystemEntity) => {
@@ -86,33 +129,53 @@ export default function App() {
   };
 
   const handleResetDefault = () => {
+    if (typeof window !== 'undefined' && !window.confirm('Tüm yerel eklemeleriniz silinecek ve sistem fabrika ayarlarına döndürülecektir. Emin misiniz?')) {
+      return;
+    }
+    try {
+      localStorage.removeItem('mamuthub_entities');
+      localStorage.removeItem('mamuthub_logs');
+    } catch (e) {
+      console.error(e);
+    }
     setEntities(INITIAL_ENTITIES);
-    showToast('Varsayılan girişimci ve yatırımcı verileri yüklendi.');
+    setLogs(INITIAL_SCRAPER_LOGS);
+    showToast('Tüm veriler fabrika ayarlarına (Orijinal repo kod haline) sıfırlandı.');
+  };
+
+  const handleSyncWithRepo = () => {
+    // Keep existing items, append any new entities from repo INITIAL_ENTITIES that aren't present by ID or Name
+    const existingNames = new Set(entities.map(e => e.name.toLowerCase()));
+    const newFromRepo = INITIAL_ENTITIES.filter(e => !existingNames.has(e.name.toLowerCase()));
+
+    if (newFromRepo.length > 0) {
+      setEntities(prev => [...prev, ...newFromRepo]);
+      showToast(`GitHub/Repo'dan ${newFromRepo.length} yeni güncelleme alındı. Manuel verileriniz korundu!`);
+    } else {
+      showToast('Repodaki tüm güncellemeler zaten mevcut. Manuel eklemeleriniz korundu.');
+    }
   };
 
   const handleTriggerScrape = () => {
     setIsScraping(true);
     setTimeout(() => {
-      const newItems: EcosystemEntity[] = [
+      const pool: Omit<EcosystemEntity, 'id' | 'lastUpdated'>[] = [
         {
-          id: `scraped-${Date.now()}-1`,
-          name: 'Colendi - FinTech Ekibi',
+          name: 'Colendi FinTech',
           titleOrCompany: 'Bülent Tekmen - Kurucu',
-          type: 'Girişimci',
+          type: 'Startup',
           category: 'FinTech',
           city: 'İstanbul',
-          description: 'Mikro finansman ve skorlama çözümleri sunan unicorn aday adayı yeni nesil finansal teknoloji şirketi.',
+          description: 'Mikro finansman ve skorlama çözümleri sunan unicorn adayı yeni nesil finansal teknoloji şirketi.',
           website: 'https://colendi.com',
           avatarUrl: 'https://images.unsplash.com/photo-1556742049-0a67daf4005a?auto=format&fit=crop&q=80&w=300',
           stage: 'Growth / Scale-up',
           foundedYear: 2021,
-          teamSize: '150+',
-          lastUpdated: new Date().toISOString().replace('T', ' ').substring(0, 16)
+          teamSize: '150+'
         },
         {
-          id: `scraped-${Date.now()}-2`,
           name: 'DCP (Diffusion Capital Partners)',
-          titleOrCompany: 'Derin Teknoloji Fonu',
+          titleOrCompany: 'Derin Teknoloji Girişim Sermayesi',
           type: 'Yatırımcı (VC)',
           category: 'Derin Teknoloji',
           city: 'Ankara',
@@ -120,10 +183,60 @@ export default function App() {
           website: 'https://dcp.vc',
           avatarUrl: 'https://images.unsplash.com/photo-1579532537598-459ecdaf39cc?auto=format&fit=crop&q=80&w=300',
           investmentFocus: ['DeepTech', 'Biotech', 'Nanotech'],
-          portfolioCount: 22,
-          lastUpdated: new Date().toISOString().replace('T', ' ').substring(0, 16)
+          portfolioCount: 22
+        },
+        {
+          name: 'Midas',
+          titleOrCompany: 'Yatırım & Finans Platformu',
+          type: 'Startup',
+          category: 'FinTech',
+          city: 'İstanbul',
+          description: 'Borsa İstanbul ve Amerikan borsalarına komisyonsuz, kolay yatırım imkanı sunan Türkiye\'nin önde gelen yatırım uygulaması.',
+          website: 'https://getmidas.com',
+          avatarUrl: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=300',
+          stage: 'Seri B+',
+          foundedYear: 2021,
+          teamSize: '120+'
+        },
+        {
+          name: 'Craftgate',
+          titleOrCompany: 'Ödeme Ağ Geçidi Orkestrasyonu',
+          type: 'Startup',
+          category: 'FinTech',
+          city: 'İstanbul',
+          description: 'E-ticaret şirketlerinin tüm sanal POS ve ödeme kuruluşlarını tek merkezden yönetmesini sağlayan akıllı ödeme orkestrasyonu platformu.',
+          website: 'https://craftgate.io',
+          avatarUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=300',
+          stage: 'Seri A',
+          foundedYear: 2020,
+          teamSize: '45'
+        },
+        {
+          name: 'Mindstone VC',
+          titleOrCompany: 'Erken Aşama Teknoloji Fonu',
+          type: 'Yatırımcı (VC)',
+          category: 'AI & Veri',
+          city: 'İstanbul',
+          description: 'Yapay zeka, SaaS ve küresel ölçeklenme potansiyeline sahip Türk girişimcilere ilk aşama sermaye sağlayan yatırım şirketi.',
+          website: 'https://mindstone.vc',
+          avatarUrl: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&q=80&w=300',
+          investmentFocus: ['AI', 'SaaS', 'Web3'],
+          portfolioCount: 14
         }
       ];
+
+      // Select items that are not yet added or build unique ones
+      const existingNames = new Set(entities.map(e => e.name.toLowerCase()));
+      const available = pool.filter(p => !existingNames.has(p.name.toLowerCase()));
+      
+      const itemsToAdd = (available.length > 0 ? available : pool).slice(0, 3);
+
+      const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
+      const newItems: EcosystemEntity[] = itemsToAdd.map((item, idx) => ({
+        ...item,
+        id: `scraped-${Date.now()}-${idx}`,
+        lastUpdated: nowStr
+      }));
 
       setEntities(prev => [...newItems, ...prev]);
 
@@ -132,15 +245,15 @@ export default function App() {
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
         source: 'Simüle Edilmiş Otomatik Web Scraper',
         status: 'Başarılı',
-        itemsFetched: 2,
-        durationMs: 780,
-        memoryUsageMb: 3.2
+        itemsFetched: newItems.length,
+        durationMs: 820,
+        memoryUsageMb: 4.1
       };
 
       setLogs(prev => [newLog, ...prev]);
       setIsScraping(false);
-      showToast('Otomatik tarama tamamlandı! 2 yeni kayıt veritabanına eklendi.');
-    }, 1400);
+      showToast(`Otomatik tarama tamamlandı! ${newItems.length} yeni girişim/yatırımcı veritabanına eklendi ve kaydedildi.`);
+    }, 1200);
   };
 
   return (
