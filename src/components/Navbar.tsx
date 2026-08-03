@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActiveTab } from '../types';
-import { LayoutGrid, Database, Cpu, Eye } from 'lucide-react';
+import { LayoutGrid, Database, Cpu, Eye, PlusCircle } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -8,6 +8,7 @@ interface NavbarProps {
   entityCount: number;
   isEmbedMode: boolean;
   onToggleEmbedMode: () => void;
+  onOpenPublicSubmissionModal: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -15,7 +16,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   entityCount,
   isEmbedMode,
-  onToggleEmbedMode
+  onToggleEmbedMode,
+  onOpenPublicSubmissionModal
 }) => {
   return (
     <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md">
@@ -40,10 +42,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Navigation Tabs */}
-          <nav className="flex items-center space-x-1">
+          <nav className="flex items-center space-x-1 sm:space-x-2">
             <button
               onClick={() => setActiveTab('directory')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
                 activeTab === 'directory'
                   ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/10'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800'
@@ -51,6 +53,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <LayoutGrid className="w-4 h-4" />
               <span>Dizin ({entityCount})</span>
+            </button>
+
+            <button
+              onClick={onOpenPublicSubmissionModal}
+              className="bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-extrabold px-3 py-2 rounded-lg text-xs flex items-center space-x-1.5 transition-all shadow-md shadow-emerald-500/10"
+              title="Topluluğa Katıl: Girişimci veya Yatırımcı profilinizi ekleyin"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span className="hidden md:inline">+ Profil / Girişim Ekle</span>
+              <span className="md:hidden">+ Ekle</span>
             </button>
 
             <button
@@ -62,7 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Cpu className="w-4 h-4" />
-              <span className="hidden sm:inline">Scraper & Sync</span>
+              <span className="hidden lg:inline">Scraper & Sync</span>
             </button>
 
             <button
@@ -74,16 +86,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Database className="w-4 h-4" />
-              <span className="hidden sm:inline">Veri Yönetimi</span>
+              <span className="hidden lg:inline">Veri Yönetimi</span>
             </button>
 
             <button
               onClick={onToggleEmbedMode}
-              className="ml-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1.5 transition-all shadow-sm"
+              className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold px-2.5 py-2 rounded-lg text-xs flex items-center space-x-1 border border-slate-700 transition-all"
               title="Mamuthub.com sayfasında görünecek olan Header'sız Temiz Embed Modunu Önizle"
             >
-              <Eye className="w-4 h-4" />
-              <span className="hidden sm:inline">Embed Testi</span>
+              <Eye className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline">Embed Testi</span>
             </button>
           </nav>
         </div>

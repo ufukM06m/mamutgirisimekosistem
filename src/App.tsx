@@ -5,6 +5,7 @@ import { Navbar } from './components/Navbar';
 import { DirectoryView } from './components/DirectoryView';
 import { AdminView } from './components/AdminView';
 import { ScraperSyncView } from './components/ScraperSyncView';
+import { PublicSubmissionModal } from './components/PublicSubmissionModal';
 import { ArrowLeft } from 'lucide-react';
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('directory');
   const [isScraping, setIsScraping] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isPublicSubmissionOpen, setIsPublicSubmissionOpen] = useState(false);
 
   // Sync entities to localStorage
   React.useEffect(() => {
@@ -274,6 +276,7 @@ export default function App() {
           entityCount={entities.length}
           isEmbedMode={isEmbedMode}
           onToggleEmbedMode={() => setIsTestEmbedMode(true)}
+          onOpenPublicSubmissionModal={() => setIsPublicSubmissionOpen(true)}
         />
       )}
 
@@ -301,6 +304,7 @@ export default function App() {
           <DirectoryView
             entities={entities}
             isEmbedMode={isEmbedMode}
+            onOpenPublicSubmissionModal={() => setIsPublicSubmissionOpen(true)}
           />
         )}
 
@@ -309,6 +313,7 @@ export default function App() {
             logs={logs}
             onTriggerScrape={handleTriggerScrape}
             isScraping={isScraping}
+            onAddEntity={handleAddEntity}
           />
         )}
 
@@ -323,6 +328,13 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Public Submission Modal (Step 1 Strategy: Community Growth) */}
+      <PublicSubmissionModal
+        isOpen={isPublicSubmissionOpen}
+        onClose={() => setIsPublicSubmissionOpen(false)}
+        onSubmit={handleAddEntity}
+      />
 
       {/* Footer (Hidden in Embed Mode) */}
       {!isEmbedMode && (

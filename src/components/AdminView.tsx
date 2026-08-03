@@ -22,7 +22,99 @@ export const AdminView: React.FC<AdminViewProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkText, setBulkText] = useState('');
+  const [bulkStatus, setBulkStatus] = useState<string | null>(null);
   const [editingEntity, setEditingEntity] = useState<EcosystemEntity | null>(null);
+
+  // Download Sample CSV Template
+  const handleDownloadTemplate = () => {
+    const headers = ['name', 'titleOrCompany', 'type', 'category', 'city', 'description', 'website', 'stage', 'teamSize'];
+    const sample1 = ['"Girişim Örnek A.Ş."', '"Bülent Yılmaz - Kurucu"', '"Startup"', '"FinTech"', '"İstanbul"', '"Örnek açıklama metni"', '"https://example.com"', '"Seed"', '"10-20"'];
+    const sample2 = ['"Anadolu VC"', '"Risk Sermayesi"', '"Yatırımcı (VC)"', '"SaaS & Yazılım"', '"Ankara"', '"Erken aşama yazılım fonu"', '"https://anadoluvc.com"', '""', '""'];
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), sample1.join(','), sample2.join(',')].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'mamuthub_toplu_veri_sablonu.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Process Bulk CSV / JSON text
+  const handleProcessBulkImport = () => {
+    if (!bulkText.trim()) return;
+
+    try {
+      let count = 0;
+      const text = bulkText.trim();
+
+      if (text.startsWith('[') || text.startsWith('{')) {
+        // Parse JSON
+        const parsed = JSON.parse(text);
+        const list = Array.isArray(parsed) ? parsed : [parsed];
+        list.forEach((item: any) => {
+          if (item.name) {
+            onAddEntity({
+              name: String(item.name),
+              titleOrCompany: String(item.titleOrCompany || item.title || 'Ekosistem Üyesi'),
+              type: (item.type as EntityType) || 'Startup',
+              category: (item.category as CategoryType) || 'SaaS & Yazılım',
+              city: String(item.city || 'İstanbul'),
+              description: String(item.description || 'Toplu veri aktarımı ile yüklendi.'),
+              website: item.website ? String(item.website) : undefined,
+              linkedin: item.linkedin ? String(item.linkedin) : undefined,
+              avatarUrl: item.avatarUrl || 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=300',
+              stage: item.stage as StageType,
+              teamSize: item.teamSize ? String(item.teamSize) : undefined
+            });
+            count++;
+          }
+        });
+      } else {
+        // Parse CSV
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length > 1) {
+          const headers = lines[0].split(',').map(h => h.replace(/^["']|["']$/g, '').trim());
+          for (let i = 1; i < lines.length; i++) {
+            // Simple CSV line parser respecting quotes
+            const row = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || lines[i].split(',');
+            if (row && row.length >= 2) {
+              const cleanRow = row.map(cell => cell.replace(/^["']|["']$/g, '').trim());
+              const name = cleanRow[0];
+              const titleOrCompany = cleanRow[1] || 'Girişim / Kurum';
+              if (name && name !== 'name') {
+                onAddEntity({
+                  name,
+                  titleOrCompany,
+                  type: (cleanRow[2] as EntityType) || 'Startup',
+                  category: (cleanRow[3] as CategoryType) || 'SaaS & Yazılım',
+                  city: cleanRow[4] || 'İstanbul',
+                  description: cleanRow[5] || 'CSV Toplu içe aktarma ile yüklendi.',
+                  website: cleanRow[6] || undefined,
+                  stage: (cleanRow[7] as StageType) || undefined,
+                  teamSize: cleanRow[8] || undefined,
+                  avatarUrl: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=300'
+                });
+                count++;
+              }
+            }
+          }
+        }
+      }
+
+      setBulkStatus(`Başarılı! ${count} adet veri dizine aktarıldı.`);
+      setTimeout(() => {
+        setBulkStatus(null);
+        setBulkText('');
+        setIsBulkModalOpen(false);
+      }, 1500);
+    } catch (e: any) {
+      console.error(e);
+      setBulkStatus(`Hata: Veri formatı okunamadı. Lütfen JSON veya CSV formatını kontrol edin.`);
+    }
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -159,6 +251,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
           >
             <Plus className="w-4 h-4" />
             <span>Yeni Ekle</span>
+          </button>
+          <button
+            onClick={() => setIsBulkModalOpen(true)}
+            className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 transition-all shadow-sm"
+            title="Excel/CSV veya JSON dosyalarınızdan topluca yüzlerce girişim aktarın"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Toplu İçe Aktar (CSV/JSON)</span>
           </button>
           <button
             onClick={exportCSV}
@@ -413,6 +513,90 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Import Modal */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 relative my-auto max-h-[90vh] overflow-y-auto space-y-5">
+            <button
+              onClick={() => setIsBulkModalOpen(false)}
+              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-800">
+                Toplu Veri İçe Aktarma (Bulk Import Engine)
+              </span>
+              <h2 className="text-xl font-extrabold text-slate-900">Toplu CSV / JSON Veri Yükleme</h2>
+              <p className="text-xs text-slate-500">
+                Excel veya veri tabanınızdan yüzlerce girişim/yatırımcı verisini tek seferde aktarabilirsiniz.
+              </p>
+            </div>
+
+            {bulkStatus && (
+              <div className={`p-3 rounded-xl text-xs font-semibold ${
+                bulkStatus.includes('Başarılı') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                {bulkStatus}
+              </div>
+            )}
+
+            <div className="bg-purple-50/60 p-4 rounded-2xl border border-purple-100 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-purple-900">Hazır Şablon İle Hızlı Başlayın:</span>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="bg-purple-700 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg font-bold flex items-center space-x-1 transition-all"
+                >
+                  <Download className="w-3.5 h-3.5 mr-1" />
+                  <span>Örnek CSV Şablonu İndir</span>
+                </button>
+              </div>
+              <p className="text-purple-700 leading-relaxed text-[11px]">
+                Sütun başlıkları: <code className="bg-white px-1 py-0.5 rounded text-purple-900 font-mono">name, titleOrCompany, type, category, city, description, website, stage, teamSize</code>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">
+                CSV veya JSON Formatında Metni Yapıştırın veya Dosya İçeriğini Ekleyin:
+              </label>
+              <textarea
+                rows={8}
+                value={bulkText}
+                onChange={e => setBulkText(e.target.value)}
+                placeholder={`"Getir", "Market Teslimatı", "Startup", "E-Ticaret & Lojistik", "İstanbul", "Hızlı teslimat", "https://getir.com", "Growth / Scale-up", "5000+"
+"Picus Security", "Siber Güvenlik", "Startup", "Siber Güvenlik", "Ankara", "Saldırı simülasyonu", "https://picussecurity.com", "Seri B+", "150+"`}
+                className="w-full p-3 font-mono text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500 outline-none text-slate-900"
+              />
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-[11px] text-slate-400">CSV veya JSON ayrıştırılarak doğrudan eklenir.</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold"
+                >
+                  İptal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleProcessBulkImport}
+                  className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-5 py-2 rounded-xl text-xs flex items-center space-x-1.5 shadow-md transition-all"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Verileri Ayrıştır & Aktar</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

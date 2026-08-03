@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { EcosystemEntity, EntityType, CategoryType, StageType } from '../types';
 import { EntityAvatar } from './EntityAvatar';
-import { Search, Filter, Globe, Linkedin, Twitter, ExternalLink, Calendar, MapPin, Building2, Sparkles, User, Briefcase, ChevronRight, X, ArrowUpDown } from 'lucide-react';
+import { Search, Filter, Globe, Linkedin, Twitter, ExternalLink, Calendar, MapPin, Building2, Sparkles, User, Briefcase, ChevronRight, X, ArrowUpDown, PlusCircle } from 'lucide-react';
 
 interface DirectoryViewProps {
   entities: EcosystemEntity[];
   onSelectEntity?: (entity: EcosystemEntity) => void;
   isEmbedMode?: boolean;
+  onOpenPublicSubmissionModal?: () => void;
 }
 
-export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedMode = false }) => {
+export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedMode = false, onOpenPublicSubmissionModal }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<EntityType | 'Tümü'>('Tümü');
   const [selectedCategory, setSelectedCategory] = useState<CategoryType | 'Tümü'>('Tümü');
@@ -89,7 +90,16 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
           </div>
 
           {/* View Mode & Count */}
-          <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5 text-xs text-slate-500">
+            {onOpenPublicSubmissionModal && (
+              <button
+                onClick={onOpenPublicSubmissionModal}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs flex items-center space-x-1.5 transition-all shadow-sm"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>+ Profil / Girişim Ekle</span>
+              </button>
+            )}
             <span className="font-medium text-slate-700">
               <strong className="text-emerald-600 font-bold">{filteredEntities.length}</strong> sonuç gösteriliyor
             </span>
