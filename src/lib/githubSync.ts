@@ -170,43 +170,69 @@ export async function commitEntitiesToGitHub(
     for (const targetPath of targetPaths) {
       const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${targetPath}`;
 
-      // Check existing SHA
-      let currentSha: string | undefined = undefined;
-      try {
-        const getRes = await fetch(`${apiUrl}?ref=${branch || 'main'}`, { headers });
-        if (getRes.ok) {
-          const fileMeta = await getRes.json();
-          currentSha = fileMeta.sha;
+      // Helper function to fetch fresh SHA from GitHub with cache busting
+      const fetchFreshSha = async (): Promise<string | undefined> => {
+        try {
+          const freshRes = await fetch(`${apiUrl}?ref=${branch || 'main'}&_t=${Date.now()}`, {
+            headers: {
+              ...headers,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            },
+            cache: 'no-store'
+          });
+          if (freshRes.ok) {
+            const fileMeta = await freshRes.json();
+            return fileMeta.sha;
+          }
+        } catch (e) {
+          console.warn(`Could not fetch fresh SHA for ${targetPath}:`, e);
         }
-      } catch (e) {
-        // file might not exist yet, which is fine
-      }
-
-      const bodyData: any = {
-        message: `${commitMessage} [${targetPath}]`,
-        content: base64Content,
-        branch: branch || 'main'
+        return undefined;
       };
 
-      if (currentSha) {
-        bodyData.sha = currentSha;
-      }
+      let currentSha = await fetchFreshSha();
 
-      try {
+      const attemptPut = async (shaToUse?: string) => {
+        const bodyData: any = {
+          message: `${commitMessage} [${targetPath}]`,
+          content: base64Content,
+          branch: branch || 'main'
+        };
+
+        if (shaToUse) {
+          bodyData.sha = shaToUse;
+        }
+
         const putRes = await fetch(apiUrl, {
           method: 'PUT',
-          headers,
+          headers: {
+            ...headers,
+            'Cache-Control': 'no-cache'
+          },
           body: JSON.stringify(bodyData)
         });
 
         const putData = await putRes.json();
+        return { ok: putRes.ok, status: putRes.status, data: putData };
+      };
 
-        if (putRes.ok) {
+      try {
+        let result = await attemptPut(currentSha);
+
+        // If SHA mismatch error occurs (e.g. 409 Conflict or "does not match"), retry once with fresh SHA
+        if (!result.ok && (result.status === 409 || (result.data?.message && result.data.message.toLowerCase().includes('does not match')))) {
+          console.warn(`SHA mismatch for ${targetPath}, retrying with fresh SHA...`);
+          currentSha = await fetchFreshSha();
+          result = await attemptPut(currentSha);
+        }
+
+        if (result.ok) {
           successfulCommits.push(targetPath);
-          lastSha = putData.content?.sha || putData.commit?.sha || lastSha;
+          lastSha = result.data.content?.sha || result.data.commit?.sha || lastSha;
         } else {
-          console.warn(`Commit to ${targetPath} failed:`, putData.message);
-          lastError = putData.message || `HTTP ${putRes.status}`;
+          console.warn(`Commit to ${targetPath} failed:`, result.data?.message);
+          lastError = result.data?.message || `HTTP ${result.status}`;
         }
       } catch (err: any) {
         console.error(`Error committing to ${targetPath}:`, err);
