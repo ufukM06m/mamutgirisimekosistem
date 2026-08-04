@@ -154,11 +154,17 @@ async function startServer() {
         // Ignore URL parsing errors for relative paths
       }
 
-      // 4. Clean DOM HTML text
+      // 4. Clean DOM HTML text - preserve table rows and structure with pipes
       let cleanText = html
         .replace(/<style\b[^<]*>([\s\S]*?)<\/style>/gi, '')
+        .replace(/<script\b[^<]*>([\s\S]*?)<\/script>/gi, '')
         .replace(/<svg\b[^<]*>([\s\S]*?)<\/svg>/gi, '')
-        .replace(/<(h[1-6]|li|p|div|tr|td|a|article|section)\b[^>]*>/gi, '\n')
+        .replace(/<\/tr>/gi, '\n')
+        .replace(/<\/li>/gi, '\n')
+        .replace(/<\/div>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<td\b[^>]*>/gi, ' | ')
+        .replace(/<th\b[^>]*>/gi, ' | ')
         .replace(/<[^>]+>/g, ' ')
         .replace(/[ \t]+/g, ' ')
         .replace(/\n\s*\n/g, '\n');
