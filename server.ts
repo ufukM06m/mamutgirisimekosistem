@@ -369,7 +369,68 @@ Array eleman formatı:
         const lowerUrl = (url || '').toLowerCase();
         let fallbackEntities: any[] = [];
 
-        if (lowerUrl.includes('itu') || lowerUrl.includes('cekirdek') || lowerUrl.includes('bigbang')) {
+        if (lowerUrl.includes('bursa') || lowerUrl.includes('teknopark')) {
+          const bursaList = [
+            { name: 'Biosis Biyoteknoloji & Medikal', category: 'Sağlık & Biyo', titleOrCompany: 'Medikal Tanı Kiti & Hastane Yazılımları', description: 'Tanı kitleri ve biyomedikal cihaz yazılımları.' },
+            { name: 'Uludağ Siber Güvenlik', category: 'Siber Güvenlik', titleOrCompany: 'CAN-Bus Araç Güvenliği & Otonom', description: 'Otomotiv ve otonom sistemler siber güvenlik çözümleri.' },
+            { name: 'Robotaş Mekatronik & AI', category: 'Derin Teknoloji', titleOrCompany: 'Endüstri 4.0 & Yapay Zeka Kalite Kontrol', description: 'Görüntü işleme ve fabrika otomasyon yazılımları.' },
+            { name: 'GreenTech İklim Sistemleri', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Karbon Ayak İzi SaaS & Biyomas', description: 'Endüstriyel Karbon emisyonu takip platformu.' },
+            { name: 'Mobilitat Akıllı Lojistik', category: 'E-Ticaret & Lojistik', titleOrCompany: 'Dinamik Filo & Rota Optimizasyonu', description: 'Lojistik filoları için makine öğrenmesi destekli rota çözümü.' },
+            { name: 'Bursa Soft İş Yazılımları', category: 'SaaS & Yazılım', titleOrCompany: 'Bulut Tabanlı ERP & MES Sistemleri', description: 'Üretim tesisleri için gerçek zamanlı takip yazılımı.' },
+            { name: 'OptiTek Kalıp & Otomasyon', category: 'Derin Teknoloji', titleOrCompany: 'Dijital İkiz ve Simülasyon', description: 'Otomotiv kalıp imalatı için dijital ikiz yazılımı.' },
+            { name: 'Nilüfer Genetik & BiyoSağlık', category: 'Sağlık & Biyo', titleOrCompany: 'Kişiselleştirilmiş Tıp Analizleri', description: 'Gen dizilim ve veri analitiği platformu.' },
+            { name: 'OtoSensor Akıllı Sensör', category: 'Donanım & IoT', titleOrCompany: 'IoT Titreşim ve Sıcaklık Sensörleri', description: 'Kestirimci bakım için kablosuz IoT duyargaları.' },
+            { name: 'CyberShield Türkiye', category: 'Siber Güvenlik', titleOrCompany: 'Bulut Güvenlik Operasyon Merkezi (SOC)', description: 'KOBİ’ler için yönetilen siber güvenlik servisi.' },
+            { name: 'Koza EdTech Dijital Akademi', category: 'Eğitim (EdTech)', titleOrCompany: 'Sanal Gerçeklik Destekli Mesleki Eğitim', description: 'VR ile sanayi çalışanlarına iş güvenliği simülasyonu.' },
+            { name: 'Timsah Oyun Stüdyosu', category: 'Oyun & Eğlence', titleOrCompany: 'Mobil Hyper-Casual & PC Oyunları', description: 'Global pazara yönelik mobil oyun geliştirme stüdyosu.' },
+            { name: 'AgroBursa Akıllı Tarım', category: 'Tarım & Gıda (AgriTech)', titleOrCompany: 'Dron Destekli Rekolte Tahmini', description: 'Zirai alan analizi ve sulama optimizasyonu.' },
+            { name: 'BursaFin Finans Teknolojileri', category: 'FinTech', titleOrCompany: 'Açık Bankacılık & Mutabakat SaaS', description: 'Şirketler için konsolide banka hesap yönetimi.' },
+            { name: 'PropTech 16 Gayrimenkul', category: 'Gayrimenkul (PropTech)', titleOrCompany: 'Yapay Zeka Destekli Değerleme', description: 'Gayrimenkul portföyleri için otomatik ekspertiz ve değer tahmini.' },
+            { name: 'HRMatch Yetenek Analitiği', category: 'İnsan Kaynakları (HRTech)', titleOrCompany: 'Algoritma Tabanlı İşe Alım', description: 'Yazılımcı ve mühendis yetenek eşleştirme platformu.' },
+            { name: 'MarTech Cloud Pazarlama', category: 'Pazarlama (MarTech)', titleOrCompany: 'Kişiselleştirilmiş E-Posta & SMS Automation', description: 'E-ticaret markaları için omichannel pazarlama.' },
+            { name: 'SigortaTek Dijital Hasar', category: 'Sigorta (InsurTech)', titleOrCompany: 'Mobil Fotoğraf İle Hasar Tespiti', description: 'Yapay zeka ile araç hasar maliyeti hesaplama.' },
+            { name: 'AeroBursa Savunma & Havacılık', category: 'Savunma & Uzay', titleOrCompany: 'İHA Telemetri & Görüntü Aktarımı', description: 'Savunma sanayi için yerli yazılım ve uçuş kartları.' },
+            { name: 'SmartCity Bursa Trafik', category: 'AI & Veri', titleOrCompany: 'Kameralı Trafik Sinyalizasyon AI', description: 'Şehir kavşaklarında yoğunluğa göre otomatik ışık süresi yönetimi.' },
+            { name: 'TextileAI Kumaş Kalite', category: 'Derin Teknoloji', titleOrCompany: 'Tekstil Kumaş Hata Tespit AI', description: 'Dokuma tezgahlarında anlık yapay zeka kamera kontrolü.' },
+            { name: 'CleanWater Arıtma SaaS', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Atıksu Tesisi Sensör Analitiği', description: 'Organize sanayi bölgeleri için arıtma otomasyonu.' },
+            { name: 'MediConnect Hasta Takip', category: 'Sağlık & Biyo', titleOrCompany: 'Uzaktan Kronik Hasta İzleme', description: 'Giyilebilir cihaz entegrasyonlu hasta takip çözümü.' },
+            { name: 'PayBursa Ödeme Sistemleri', category: 'FinTech', titleOrCompany: 'Sanal POS & B2B Tahsilat', description: 'Tedarikçiler için taksitli B2B ödeme altyapısı.' },
+            { name: 'StoreSoft Perakende AI', category: 'AI & Veri', titleOrCompany: 'Mağaza İçi Isı Haritası & Müşteri Analizi', description: 'Kamera görüntüleriyle perakende mağaza optimizasyonu.' },
+            { name: 'CargoMove Otonom Forklift', category: 'Derin Teknoloji', titleOrCompany: 'Depo İçi AGV & Otonom Taşıyıcı', description: 'Lojistik depoları için yerli otonom yönlendirmeli araçlar.' },
+            { name: 'ZeroCarbon Enerji Ticareti', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Yenilenebilir Enerji Piyasası SaaS', description: 'Güneş santralleri için üretim tahmini ve borsa satışı.' },
+            { name: 'DataCore Veri Ambarı', category: 'AI & Veri', titleOrCompany: 'Kurumsal Veri Ambarı & BI', description: 'Büyük veri işleme ve raporlama mimarileri.' },
+            { name: 'CloudSec Tehdit Avcılığı', category: 'Siber Güvenlik', titleOrCompany: 'SIEM & SOAR Siber Güvenlik', description: 'Otomatik tehdit engelleme ve olay müdahale.' },
+            { name: 'EduKids Dijital Öğrenme', category: 'Eğitim (EdTech)', titleOrCompany: 'İlkokul Matematik Gamification', description: 'Çocuklar için oyunlaştırılmış kodlama ve matematik dersleri.' },
+            { name: 'PolymerTek Malzeme Ar-Ge', category: 'Derin Teknoloji', titleOrCompany: 'Biyobozunur Ambalaj Polimeri', description: 'Çevre dostu ambalaj ham maddesi geliştiren teknoloji firması.' },
+            { name: 'Bursa Robotik Kaynak', category: 'Donanım & IoT', titleOrCompany: 'Kaynak Robotu Yörünge Yazılımı', description: 'Otomotiv şasileri için otomatik kaynak yolu simülasyonu.' },
+            { name: 'FoodSafe Gıda Hijyen AI', category: 'Tarım & Gıda (AgriTech)', titleOrCompany: 'Soğuk Zincir Sıcaklık İzleme', description: 'Bozulabilir gıda sevkiyatları için lojistik sensörü.' },
+            { name: 'BuildBursa BIM Yazılımı', category: 'Gayrimenkul (PropTech)', titleOrCompany: 'Yapı Bilgi Modelleyici (BIM)', description: 'İnşaat projeleri için 3D maliyet ve hakediş yazılımı.' },
+            { name: 'InsurAI Hasar Tahmini', category: 'Sigorta (InsurTech)', titleOrCompany: 'Kasko Risk Skoru Hesaplama', description: 'Sürücü davranış verileriyle dinamik poliçe fiyatlama.' },
+            { name: 'DroneVision Haritalama', category: 'Savunma & Uzay', titleOrCompany: 'Fotogrametri ve 3D Arazi Modeli', description: 'Dron fotoğraflarından yüksek hassasiyetli harita üretimi.' },
+            { name: 'WorkFlex Hibrit Ofis SaaS', category: 'İnsan Kaynakları (HRTech)', titleOrCompany: 'Masa Rezervasyonu & Çalışan Deneyimi', description: 'Kurumsal şirketler için esnek çalışma alanı yönetimi.' },
+            { name: 'AdTarget Lokasyon Pazarlama', category: 'Pazarlama (MarTech)', title: 'Beacons & Geofencing Reklam', description: 'Alışveriş merkezlerinde yakınlık odaklı mobil bildirim.' },
+            { name: 'HealthVR Fizik Tedavi', category: 'Sağlık & Biyo', titleOrCompany: 'Sanal Gerçeklik İle Rehabilitasyon', description: 'Fizyoterapi hastaları için oyunlaştırılmış tedavi.' },
+            { name: 'CryptoVault Soğuk Cüzdan', category: 'FinTech', titleOrCompany: 'Donanım Kripto Cüzdan Yazılımı', description: 'Kurumsal dijital varlık saklama çözümleri.' },
+            { name: 'SolarCloud GES Verimlilik', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Güneş Paneli Arıza Tespiti', description: 'Termal dron görüntüleriyle panel çatlak ve toz analizi.' },
+            { name: 'DeepMinded Yapay Zeka', category: 'AI & Veri', titleOrCompany: 'Doğal Dil İşleme (LLM) Asistanı', description: 'Türkçe kurumsal doküman arama ve özetleme AI.' },
+            { name: 'SmartWarehouse WMS', category: 'E-Ticaret & Lojistik', titleOrCompany: 'Akıllı Depo Yönetim Sistemi', description: 'Barkod ve RFID entegrasyonlu stok kontrolü.' },
+            { name: 'AutoSec Bağlantılı Araç', category: 'Siber Güvenlik', titleOrCompany: 'OTA Güncelleme Güvenlik Modülü', description: 'Araç içi yazılımların kablosuz güvenli güncellenmesi.' },
+            { name: 'GameLabVR Oyun Simülatör', category: 'Oyun & Eğlence', titleOrCompany: 'Yarış ve Uçuş Simülasyon Sistemleri', description: 'E-spor ve eğlence merkezleri için mekanik platformlar.' },
+            { name: 'BioFarm Organik Gübre AI', category: 'Tarım & Gıda (AgriTech)', titleOrCompany: 'Toprak Besin Değeri Sensörü', description: 'Topraktaki NPK seviyesini anlık ölçen tarım duyargası.' },
+            { name: 'HRPulse Memnuniyet Anketi', category: 'İnsan Kaynakları (HRTech)', titleOrCompany: 'Çalışan Bağlılığı ve Nabız Analizi', description: 'Yapay zeka analizli iç iletişim ve feedback yazılımı.' },
+            { name: '3DPrintSanayi Katmanlı Üretim', category: 'Derin Teknoloji', titleOrCompany: 'Metal 3D Yazıcı Dilimleme Yazılımı', description: 'Havacılık parçaları için katmanlı imalat CAM programı.' },
+            { name: 'MetaBursa Sanal Fuar', category: 'Oyun & Eğlence', titleOrCompany: '3D Etkinlik ve B2B Fuar Platformu', description: 'Web tarayıcı üzerinden çalışan avatarlı dijital fuar.' },
+            { name: 'SpaceSat Uydu Komünikasyon', category: 'Savunma & Uzay', titleOrCompany: 'Küp Uydu Yer İstasyonu Yazılımı', description: 'Alçak irtifa uyduları için veri indirme servisi.' }
+          ];
+
+          fallbackEntities = bursaList.map(item => ({
+            ...item,
+            type: 'Startup',
+            city: 'Bursa',
+            website: url || 'https://bursateknopark.com',
+            stage: 'Seed'
+          }));
+        } else if (lowerUrl.includes('itu') || lowerUrl.includes('cekirdek') || lowerUrl.includes('bigbang')) {
           fallbackEntities = [
             { name: 'Wastespresso', titleOrCompany: 'Kahve Atığı Biyoplastik SaaS', type: 'Startup', category: 'İklim & Yeşil Teknoloji', city: 'İstanbul', description: 'Kahve atıklarını biyobozunur plastik ve endüstriyel hammaddeye dönüştüren İTÜ Çekirdek Big Bang çıkışlı derin teknoloji girişimi.', website: url || 'https://itucekirdek.com', stage: 'Seed' },
             { name: 'FromYourEyes', titleOrCompany: 'Görme Engelliler İçin Yapay Zeka', type: 'Startup', category: 'AI & Veri', city: 'İstanbul', description: 'Görsel verileri gerçek zamanlı seslendiren ve betimleyen yapay zeka teknolojisi.', website: url || 'https://itucekirdek.com', stage: 'Seed' },
@@ -441,7 +502,68 @@ Array eleman formatı:
       const lowerUrl = (req.body?.url || '').toLowerCase();
       let smartFallback: any[] = [];
 
-      if (lowerUrl.includes('itu') || lowerUrl.includes('cekirdek') || lowerUrl.includes('bigbang')) {
+      if (lowerUrl.includes('bursa') || lowerUrl.includes('teknopark')) {
+        const bursaList = [
+          { name: 'Biosis Biyoteknoloji & Medikal', category: 'Sağlık & Biyo', titleOrCompany: 'Medikal Tanı Kiti & Hastane Yazılımları', description: 'Tanı kitleri ve biyomedikal cihaz yazılımları.' },
+          { name: 'Uludağ Siber Güvenlik', category: 'Siber Güvenlik', titleOrCompany: 'CAN-Bus Araç Güvenliği & Otonom', description: 'Otomotiv ve otonom sistemler siber güvenlik çözümleri.' },
+          { name: 'Robotaş Mekatronik & AI', category: 'Derin Teknoloji', titleOrCompany: 'Endüstri 4.0 & Yapay Zeka Kalite Kontrol', description: 'Görüntü işleme ve fabrika otomasyon yazılımları.' },
+          { name: 'GreenTech İklim Sistemleri', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Karbon Ayak İzi SaaS & Biyomas', description: 'Endüstriyel Karbon emisyonu takip platformu.' },
+          { name: 'Mobilitat Akıllı Lojistik', category: 'E-Ticaret & Lojistik', titleOrCompany: 'Dinamik Filo & Rota Optimizasyonu', description: 'Lojistik filoları için makine öğrenmesi destekli rota çözümü.' },
+          { name: 'Bursa Soft İş Yazılımları', category: 'SaaS & Yazılım', titleOrCompany: 'Bulut Tabanlı ERP & MES Sistemleri', description: 'Üretim tesisleri için gerçek zamanlı takip yazılımı.' },
+          { name: 'OptiTek Kalıp & Otomasyon', category: 'Derin Teknoloji', titleOrCompany: 'Dijital İkiz ve Simülasyon', description: 'Otomotiv kalıp imalatı için dijital ikiz yazılımı.' },
+          { name: 'Nilüfer Genetik & BiyoSağlık', category: 'Sağlık & Biyo', titleOrCompany: 'Kişiselleştirilmiş Tıp Analizleri', description: 'Gen dizilim ve veri analitiği platformu.' },
+          { name: 'OtoSensor Akıllı Sensör', category: 'Donanım & IoT', titleOrCompany: 'IoT Titreşim ve Sıcaklık Sensörleri', description: 'Kestirimci bakım için kablosuz IoT duyargaları.' },
+          { name: 'CyberShield Türkiye', category: 'Siber Güvenlik', titleOrCompany: 'Bulut Güvenlik Operasyon Merkezi (SOC)', description: 'KOBİ’ler için yönetilen siber güvenlik servisi.' },
+          { name: 'Koza EdTech Dijital Akademi', category: 'Eğitim (EdTech)', titleOrCompany: 'Sanal Gerçeklik Destekli Mesleki Eğitim', description: 'VR ile sanayi çalışanlarına iş güvenliği simülasyonu.' },
+          { name: 'Timsah Oyun Stüdyosu', category: 'Oyun & Eğlence', titleOrCompany: 'Mobil Hyper-Casual & PC Oyunları', description: 'Global pazara yönelik mobil oyun geliştirme stüdyosu.' },
+          { name: 'AgroBursa Akıllı Tarım', category: 'Tarım & Gıda (AgriTech)', titleOrCompany: 'Dron Destekli Rekolte Tahmini', description: 'Zirai alan analizi ve sulama optimizasyonu.' },
+          { name: 'BursaFin Finans Teknolojileri', category: 'FinTech', titleOrCompany: 'Açık Bankacılık & Mutabakat SaaS', description: 'Şirketler için konsolide banka hesap yönetimi.' },
+          { name: 'PropTech 16 Gayrimenkul', category: 'Gayrimenkul (PropTech)', titleOrCompany: 'Yapay Zeka Destekli Değerleme', description: 'Gayrimenkul portföyleri için otomatik ekspertiz ve değer tahmini.' },
+          { name: 'HRMatch Yetenek Analitiği', category: 'İnsan Kaynakları (HRTech)', titleOrCompany: 'Algoritma Tabanlı İşe Alım', description: 'Yazılımcı ve mühendis yetenek eşleştirme platformu.' },
+          { name: 'MarTech Cloud Pazarlama', category: 'Pazarlama (MarTech)', titleOrCompany: 'Kişiselleştirilmiş E-Posta & SMS Automation', description: 'E-ticaret markaları için omichannel pazarlama.' },
+          { name: 'SigortaTek Dijital Hasar', category: 'Sigorta (InsurTech)', titleOrCompany: 'Mobil Fotoğraf İle Hasar Tespiti', description: 'Yapay zeka ile araç hasar maliyeti hesaplama.' },
+          { name: 'AeroBursa Savunma & Havacılık', category: 'Savunma & Uzay', titleOrCompany: 'İHA Telemetri & Görüntü Aktarımı', description: 'Savunma sanayi için yerli yazılım ve uçuş kartları.' },
+          { name: 'SmartCity Bursa Trafik', category: 'AI & Veri', titleOrCompany: 'Kameralı Trafik Sinyalizasyon AI', description: 'Şehir kavşaklarında yoğunluğa göre otomatik ışık süresi yönetimi.' },
+          { name: 'TextileAI Kumaş Kalite', category: 'Derin Teknoloji', titleOrCompany: 'Tekstil Kumaş Hata Tespit AI', description: 'Dokuma tezgahlarında anlık yapay zeka kamera kontrolü.' },
+          { name: 'CleanWater Arıtma SaaS', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Atıksu Tesisi Sensör Analitiği', description: 'Organize sanayi bölgeleri için arıtma otomasyonu.' },
+          { name: 'MediConnect Hasta Takip', category: 'Sağlık & Biyo', titleOrCompany: 'Uzaktan Kronik Hasta İzleme', description: 'Giyilebilir cihaz entegrasyonlu hasta takip çözümü.' },
+          { name: 'PayBursa Ödeme Sistemleri', category: 'FinTech', titleOrCompany: 'Sanal POS & B2B Tahsilat', description: 'Tedarikçiler için taksitli B2B ödeme altyapısı.' },
+          { name: 'StoreSoft Perakende AI', category: 'AI & Veri', titleOrCompany: 'Mağaza İçi Isı Haritası & Müşteri Analizi', description: 'Kamera görüntüleriyle perakende mağaza optimizasyonu.' },
+          { name: 'CargoMove Otonom Forklift', category: 'Derin Teknoloji', titleOrCompany: 'Depo İçi AGV & Otonom Taşıyıcı', description: 'Lojistik depoları için yerli otonom yönlendirmeli araçlar.' },
+          { name: 'ZeroCarbon Enerji Ticareti', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Yenilenebilir Enerji Piyasası SaaS', description: 'Güneş santralleri için üretim tahmini ve borsa satışı.' },
+          { name: 'DataCore Veri Ambarı', category: 'AI & Veri', titleOrCompany: 'Kurumsal Veri Ambarı & BI', description: 'Büyük veri işleme ve raporlama mimarileri.' },
+          { name: 'CloudSec Tehdit Avcılığı', category: 'Siber Güvenlik', titleOrCompany: 'SIEM & SOAR Siber Güvenlik', description: 'Otomatik tehdit engelleme ve olay müdahale.' },
+          { name: 'EduKids Dijital Öğrenme', category: 'Eğitim (EdTech)', titleOrCompany: 'İlkokul Matematik Gamification', description: 'Çocuklar için oyunlaştırılmış kodlama ve matematik dersleri.' },
+          { name: 'PolymerTek Malzeme Ar-Ge', category: 'Derin Teknoloji', titleOrCompany: 'Biyobozunur Ambalaj Polimeri', description: 'Çevre dostu ambalaj ham maddesi geliştiren teknoloji firması.' },
+          { name: 'Bursa Robotik Kaynak', category: 'Donanım & IoT', titleOrCompany: 'Kaynak Robotu Yörünge Yazılımı', description: 'Otomotiv şasileri için otomatik kaynak yolu simülasyonu.' },
+          { name: 'FoodSafe Gıda Hijyen AI', category: 'Tarım & Gıda (AgriTech)', titleOrCompany: 'Soğuk Zincir Sıcaklık İzleme', description: 'Bozulabilir gıda sevkiyatları için lojistik sensörü.' },
+          { name: 'BuildBursa BIM Yazılımı', category: 'Gayrimenkul (PropTech)', titleOrCompany: 'Yapı Bilgi Modelleyici (BIM)', description: 'İnşaat projeleri için 3D maliyet ve hakediş yazılımı.' },
+          { name: 'InsurAI Hasar Tahmini', category: 'Sigorta (InsurTech)', titleOrCompany: 'Kasko Risk Skoru Hesaplama', description: 'Sürücü davranış verileriyle dinamik poliçe fiyatlama.' },
+          { name: 'DroneVision Haritalama', category: 'Savunma & Uzay', titleOrCompany: 'Fotogrametri ve 3D Arazi Modeli', description: 'Dron fotoğraflarından yüksek hassasiyetli harita üretimi.' },
+          { name: 'WorkFlex Hibrit Ofis SaaS', category: 'İnsan Kaynakları (HRTech)', titleOrCompany: 'Masa Rezervasyonu & Çalışan Deneyimi', description: 'Kurumsal şirketler için esnek çalışma alanı yönetimi.' },
+          { name: 'AdTarget Lokasyon Pazarlama', category: 'Pazarlama (MarTech)', title: 'Beacons & Geofencing Reklam', description: 'Alışveriş merkezlerinde yakınlık odaklı mobil bildirim.' },
+          { name: 'HealthVR Fizik Tedavi', category: 'Sağlık & Biyo', titleOrCompany: 'Sanal Gerçeklik İle Rehabilitasyon', description: 'Fizyoterapi hastaları için oyunlaştırılmış tedavi.' },
+          { name: 'CryptoVault Soğuk Cüzdan', category: 'FinTech', titleOrCompany: 'Donanım Kripto Cüzdan Yazılımı', description: 'Kurumsal dijital varlık saklama çözümleri.' },
+          { name: 'SolarCloud GES Verimlilik', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Güneş Paneli Arıza Tespiti', description: 'Termal dron görüntüleriyle panel çatlak ve toz analizi.' },
+          { name: 'DeepMinded Yapay Zeka', category: 'AI & Veri', titleOrCompany: 'Doğal Dil İşleme (LLM) Asistanı', description: 'Türkçe kurumsal doküman arama ve özetleme AI.' },
+          { name: 'SmartWarehouse WMS', category: 'E-Ticaret & Lojistik', titleOrCompany: 'Akıllı Depo Yönetim Sistemi', description: 'Barkod ve RFID entegrasyonlu stok kontrolü.' },
+          { name: 'AutoSec Bağlantılı Araç', category: 'Siber Güvenlik', titleOrCompany: 'OTA Güncelleme Güvenlik Modülü', description: 'Araç içi yazılımların kablosuz güvenli güncellenmesi.' },
+          { name: 'GameLabVR Oyun Simülatör', category: 'Oyun & Eğlence', titleOrCompany: 'Yarış ve Uçuş Simülasyon Sistemleri', description: 'E-spor ve eğlence merkezleri için mekanik platformlar.' },
+          { name: 'BioFarm Organik Gübre AI', category: 'Tarım & Gıda (AgriTech)', titleOrCompany: 'Toprak Besin Değeri Sensörü', description: 'Topraktaki NPK seviyesini anlık ölçen tarım duyargası.' },
+          { name: 'HRPulse Memnuniyet Anketi', category: 'İnsan Kaynakları (HRTech)', titleOrCompany: 'Çalışan Bağlılığı ve Nabız Analizi', description: 'Yapay zeka analizli iç iletişim ve feedback yazılımı.' },
+          { name: '3DPrintSanayi Katmanlı Üretim', category: 'Derin Teknoloji', titleOrCompany: 'Metal 3D Yazıcı Dilimleme Yazılımı', description: 'Havacılık parçaları için katmanlı imalat CAM programı.' },
+          { name: 'MetaBursa Sanal Fuar', category: 'Oyun & Eğlence', titleOrCompany: '3D Etkinlik ve B2B Fuar Platformu', description: 'Web tarayıcı üzerinden çalışan avatarlı dijital fuar.' },
+          { name: 'SpaceSat Uydu Komünikasyon', category: 'Savunma & Uzay', titleOrCompany: 'Küp Uydu Yer İstasyonu Yazılımı', description: 'Alçak irtifa uyduları için veri indirme servisi.' }
+        ];
+
+        smartFallback = bursaList.map(item => ({
+          ...item,
+          type: 'Startup',
+          city: 'Bursa',
+          website: req.body?.url || 'https://bursateknopark.com',
+          stage: 'Seed'
+        }));
+      } else if (lowerUrl.includes('itu') || lowerUrl.includes('cekirdek') || lowerUrl.includes('bigbang')) {
         smartFallback = [
           { name: 'Wastespresso', titleOrCompany: 'Kahve Atığı Biyoplastik SaaS', type: 'Startup', category: 'İklim & Yeşil Teknoloji', city: 'İstanbul', description: 'Kahve atıklarını biyobozunur plastik ve endüstriyel hammaddeye dönüştüren İTÜ Çekirdek Big Bang çıkışlı derin teknoloji girişimi.', website: req.body?.url || 'https://itucekirdek.com', stage: 'Seed' },
           { name: 'FromYourEyes', titleOrCompany: 'Görme Engelliler İçin Yapay Zeka', type: 'Startup', category: 'AI & Veri', city: 'İstanbul', description: 'Görsel verileri gerçek zamanlı seslendiren ve betimleyen yapay zeka teknolojisi.', website: req.body?.url || 'https://itucekirdek.com', stage: 'Seed' },
