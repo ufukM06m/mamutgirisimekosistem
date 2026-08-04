@@ -132,6 +132,8 @@ export default function App() {
     }
   }, [githubConfig]);
 
+  const isInitializedRef = React.useRef(false);
+
   // Initial load from server disk (/api/entities)
   React.useEffect(() => {
     fetch('/api/entities')
@@ -139,21 +141,29 @@ export default function App() {
       .then(data => {
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
           setEntities(prev => {
-            // Keep whichever has more items or prefer server if larger
-            if (data.data.length >= prev.length) {
-              return deduplicateAndNormalizeEntities(data.data);
+            // Keep server data if it's larger or equal, or if prev is just initial mock
+            if (data.data.length >= prev.length || prev.length <= 43) {
+              const normalized = deduplicateAndNormalizeEntities(data.data);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('mamuthub_entities', JSON.stringify(normalized));
+              }
+              return normalized;
             }
             return prev;
           });
         }
+        isInitializedRef.current = true;
       })
       .catch(err => {
         console.warn('Could not fetch initial entities from /api/entities:', err);
+        isInitializedRef.current = true;
       });
   }, []);
 
-  // Sync entities to localStorage & server disk
+  // Sync entities to localStorage & server disk ONLY after initial load is complete
   React.useEffect(() => {
+    if (!isInitializedRef.current) return;
+
     try {
       if (typeof window !== 'undefined') {
         localStorage.setItem('mamuthub_entities', JSON.stringify(entities));

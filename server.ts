@@ -836,9 +836,29 @@ Format:
         return res.status(400).json({ success: false, error: 'owner, repo ve token parametreleri zorunludur.' });
       }
 
+      // Determine entity list to commit: prefer disk data if disk has more items or if entities is missing/incomplete
+      let entitiesToCommit: any[] = Array.isArray(entities) ? entities : [];
+      const candidateFiles = [
+        path.join(process.cwd(), 'entities.json'),
+        path.join(process.cwd(), 'ecosystem.json'),
+        path.join(process.cwd(), 'src', 'data', 'entities.json'),
+        path.join(process.cwd(), 'public', 'entities.json')
+      ];
+      for (const f of candidateFiles) {
+        if (fs.existsSync(f)) {
+          try {
+            const diskData = JSON.parse(fs.readFileSync(f, 'utf-8'));
+            if (Array.isArray(diskData) && diskData.length > entitiesToCommit.length) {
+              console.log(`[Server Proxy] Using disk file data (${diskData.length} items) over request body (${entitiesToCommit.length} items)`);
+              entitiesToCommit = diskData;
+            }
+          } catch (e) {}
+        }
+      }
+
       // Automatically sync local disk as well when committing to GitHub
-      if (Array.isArray(entities) && entities.length > 0) {
-        saveEntitiesToDisk(entities);
+      if (entitiesToCommit.length > 0) {
+        saveEntitiesToDisk(entitiesToCommit);
       }
 
       const primaryPath = filePath ? (filePath.startsWith('/') ? filePath.substring(1) : filePath) : 'entities.json';
@@ -857,7 +877,7 @@ Format:
         'User-Agent': 'Mamuthub-Server'
       };
 
-      const jsonString = JSON.stringify(entities || [], null, 2);
+      const jsonString = JSON.stringify(entitiesToCommit, null, 2);
       const base64Content = Buffer.from(jsonString, 'utf-8').toString('base64');
 
       const successfulCommits: string[] = [];
