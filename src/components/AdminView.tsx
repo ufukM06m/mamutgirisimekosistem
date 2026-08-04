@@ -677,9 +677,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <Database className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-lg font-extrabold text-purple-200">GitHub Tabanlı Veritabanı (Git Database Adapter)</h2>
+                <h2 className="text-lg font-extrabold text-purple-200">GitHub Tabanlı Veritabanı (Otomatik Çoklu Dosya Senkronizasyonu)</h2>
                 <p className="text-xs text-slate-300">
-                  Veritabanınızı GitHub'daki <code>entities.json</code> dosyasında saklayın. Buradan 1-tıkla GitHub'dan verilerinizi çekebilir ve yaptığınız tüm ekleme/onaylama işlemlerini <strong>doğrudan GitHub'a Commit</strong> olarak kaydedebilirsiniz!
+                  Veritabanınızı GitHub'da saklayın. 1-Tıkla GitHub'a commit attığınızda <code>entities.json</code>, <code>ecosystem.json</code> ve <code>src/data/entities.json</code> dosyalarının tümü <strong>otomatik olarak eşzamanlı güncellenir</strong>. Böylece Vercel veya WordPress hangi dosyayı okuyorsa canlı veriniz anında yansır!
                 </p>
               </div>
             </div>
@@ -866,7 +866,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <div className="bg-white p-3 rounded-xl border border-purple-100 space-y-1.5">
                   <div className="text-[11px] font-bold text-slate-700">Yayınlanacak Canlı Kayıt Sayısı:</div>
                   <div className="text-xl font-black text-purple-700">{entities.length} Firma / Girişimci</div>
-                  <div className="text-[10px] text-slate-500">Tüm eklemeler, güncellemeler ve silmeler <code>entities.json</code> dosyasına işlenir.</div>
+                  <div className="text-[10px] text-slate-500">Eşzamanlı olarak <code>entities.json</code>, <code>ecosystem.json</code> ve <code>src/data/entities.json</code> dosyalarına işlenir.</div>
                 </div>
 
                 <div>

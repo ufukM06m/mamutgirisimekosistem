@@ -301,9 +301,24 @@ export default function App() {
       lastUpdated: new Date().toISOString().replace('T', ' ').substring(0, 16)
     };
 
-    setEntities(prev => deduplicateAndNormalizeEntities([approved, ...prev]));
+    let updatedList: EcosystemEntity[] = [];
+    setEntities(prev => {
+      updatedList = deduplicateAndNormalizeEntities([approved, ...prev]);
+      return updatedList;
+    });
     setPendingEntities(prev => prev.filter(p => p.id !== pendingId));
     showToast(`"${target.name}" onaylandı ve canlı dizinde yayınlandı! 🎉`);
+
+    // Auto-sync to GitHub if PAT token is configured
+    if (githubConfig.token && githubConfig.owner && githubConfig.repo && githubConfig.autoSyncOnApprove !== false) {
+      setTimeout(() => {
+        commitEntitiesToGitHub(githubConfig, updatedList, `Onaylandı: ${target.name}`).then(res => {
+          if (res.success) {
+            showToast(`"${target.name}" GitHub'a otomatik commit edildi! 🚀`);
+          }
+        });
+      }, 300);
+    }
   };
 
   const handleRejectPending = (pendingId: string) => {
@@ -372,7 +387,7 @@ export default function App() {
 
   const handlePushToGithub = async (
     overrideConfig?: GitHubConfig,
-    commitMsg: string = 'Update entities.json via Mamuthub Admin'
+    commitMsg: string = 'Update entities.json & ecosystem.json via Mamuthub Admin'
   ): Promise<{ success: boolean; message: string }> => {
     const cfg = overrideConfig || githubConfig;
     const result = await commitEntitiesToGitHub(cfg, entities, commitMsg);
@@ -383,8 +398,12 @@ export default function App() {
         lastCommitSha: result.sha
       };
       setGithubConfig(updatedCfg);
-      showToast('GitHub reponuza yeni commit atıldı ve veritabanınız güncellendi! 🚀');
-      return { success: true, message: `Commit Başarılı! SHA: ${result.sha?.substring(0, 7) || 'OK'}` };
+      const filesInfo = result.updatedFiles ? result.updatedFiles.join(', ') : 'entities.json, ecosystem.json';
+      showToast(`GitHub reponuza commit atıldı! Güncellenen dosyalar: ${filesInfo} 🚀`);
+      return {
+        success: true,
+        message: `Commit Başarılı! [${filesInfo}] (SHA: ${result.sha?.substring(0, 7) || 'OK'})`
+      };
     } else {
       return { success: false, message: result.error || 'GitHub Commit başarısız oldu.' };
     }
