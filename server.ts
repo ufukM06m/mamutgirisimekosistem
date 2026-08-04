@@ -764,6 +764,115 @@ Format:
     }
   });
 
+  // Server-side GitHub Commit Proxy endpoint
+  app.post('/api/github/commit', async (req, res) => {
+    try {
+      const { owner, repo, filePath, branch, token, entities, commitMessage } = req.body;
+      if (!owner || !repo || !token) {
+        return res.status(400).json({ success: false, error: 'owner, repo ve token parametreleri zorunludur.' });
+      }
+
+      const primaryPath = filePath ? (filePath.startsWith('/') ? filePath.substring(1) : filePath) : 'entities.json';
+      const targetPaths = Array.from(new Set([
+        primaryPath,
+        'entities.json',
+        'ecosystem.json',
+        'src/data/entities.json',
+        'public/entities.json'
+      ].filter(Boolean)));
+
+      const headers: Record<string, string> = {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': `Bearer ${token.trim()}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mamuthub-Server'
+      };
+
+      const jsonString = JSON.stringify(entities || [], null, 2);
+      const base64Content = Buffer.from(jsonString, 'utf-8').toString('base64');
+
+      const successfulCommits: string[] = [];
+      let lastSha: string | undefined = undefined;
+      let lastError: string | undefined = undefined;
+
+      for (const targetPath of targetPaths) {
+        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${targetPath}`;
+
+        const fetchFreshSha = async (): Promise<string | undefined> => {
+          try {
+            const freshRes = await fetch(`${apiUrl}?ref=${branch || 'main'}&_t=${Date.now()}`, { headers });
+            if (freshRes.ok) {
+              const fileMeta: any = await freshRes.json();
+              return fileMeta.sha;
+            }
+          } catch (e) {
+            console.warn(`[Server Proxy] Could not fetch SHA for ${targetPath}:`, e);
+          }
+          return undefined;
+        };
+
+        let currentSha = await fetchFreshSha();
+
+        const attemptPut = async (shaToUse?: string) => {
+          const bodyData: any = {
+            message: `${commitMessage || 'Update entities via Mamuthub Admin'} [${targetPath}]`,
+            content: base64Content,
+            branch: branch || 'main'
+          };
+          if (shaToUse) {
+            bodyData.sha = shaToUse;
+          }
+
+          const putRes = await fetch(apiUrl, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(bodyData)
+          });
+
+          const putData: any = await putRes.json();
+          return { ok: putRes.ok, status: putRes.status, data: putData };
+        };
+
+        try {
+          let result = await attemptPut(currentSha);
+
+          if (!result.ok && (result.status === 409 || (result.data?.message && result.data.message.toLowerCase().includes('does not match')))) {
+            console.warn(`[Server Proxy] SHA mismatch for ${targetPath}, retrying with fresh SHA...`);
+            currentSha = await fetchFreshSha();
+            result = await attemptPut(currentSha);
+          }
+
+          if (result.ok) {
+            successfulCommits.push(targetPath);
+            lastSha = result.data.content?.sha || result.data.commit?.sha || lastSha;
+          } else {
+            console.warn(`[Server Proxy] Commit to ${targetPath} failed:`, result.data?.message);
+            lastError = result.data?.message || `HTTP ${result.status}`;
+          }
+        } catch (err: any) {
+          console.error(`[Server Proxy] Error committing to ${targetPath}:`, err);
+          lastError = err.message;
+        }
+      }
+
+      if (successfulCommits.length > 0) {
+        return res.json({
+          success: true,
+          sha: lastSha,
+          updatedFiles: successfulCommits
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: lastError || 'GitHub commit atılamadı. Token izinlerini ve Repo adını kontrol edin.'
+        });
+      }
+    } catch (err: any) {
+      console.error('[Server Proxy] GitHub commit endpoint error:', err);
+      return res.status(500).json({ success: false, error: err.message || 'Sunucu üzerinden GitHub commit hatası.' });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
     const vite = await createViteServer({

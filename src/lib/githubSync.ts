@@ -160,6 +160,37 @@ export async function commitEntitiesToGitHub(
       'Content-Type': 'application/json'
     };
 
+    // 1. Try server-side proxy endpoint first (avoids CORS issues completely)
+    try {
+      const proxyRes = await fetch('/api/github/commit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          owner,
+          repo,
+          filePath: primaryPath,
+          branch,
+          token,
+          entities,
+          commitMessage
+        })
+      });
+
+      if (proxyRes.ok) {
+        const proxyData = await proxyRes.json();
+        if (proxyData.success) {
+          return {
+            success: true,
+            sha: proxyData.sha,
+            updatedFiles: proxyData.updatedFiles
+          };
+        }
+      }
+    } catch (proxyErr) {
+      console.warn('Server proxy commit unavailable, falling back to direct browser fetch...', proxyErr);
+    }
+
+    // 2. Direct browser fetch fallback (using clean CORS headers)
     const jsonString = JSON.stringify(entities, null, 2);
     const base64Content = utf8ToBase64(jsonString);
 
@@ -170,16 +201,11 @@ export async function commitEntitiesToGitHub(
     for (const targetPath of targetPaths) {
       const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${targetPath}`;
 
-      // Helper function to fetch fresh SHA from GitHub with cache busting
+      // Helper function to fetch fresh SHA from GitHub with cache busting query param only
       const fetchFreshSha = async (): Promise<string | undefined> => {
         try {
           const freshRes = await fetch(`${apiUrl}?ref=${branch || 'main'}&_t=${Date.now()}`, {
-            headers: {
-              ...headers,
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache'
-            },
-            cache: 'no-store'
+            headers
           });
           if (freshRes.ok) {
             const fileMeta = await freshRes.json();
@@ -206,10 +232,7 @@ export async function commitEntitiesToGitHub(
 
         const putRes = await fetch(apiUrl, {
           method: 'PUT',
-          headers: {
-            ...headers,
-            'Cache-Control': 'no-cache'
-          },
+          headers,
           body: JSON.stringify(bodyData)
         });
 
