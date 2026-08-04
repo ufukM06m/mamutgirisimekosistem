@@ -150,18 +150,30 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
     return geoPath().projection(projection);
   }, [projection]);
 
-  // Generate Embed Code for WordPress
-  const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://mamuthub.com';
-  const iframeEmbedCode = `<iframe 
+  // Generate Embed Code for WordPress / Vercel
+  const appOrigin = typeof window !== 'undefined' && !window.location.origin.includes('localhost') && !window.location.origin.includes('run.app')
+    ? window.location.origin 
+    : 'https://mamutgirisimekosistem.vercel.app';
+
+  const iframeEmbedCode = `<!-- MAMUTHUB HARİTA SAYFASI EMBED -->
+<iframe 
+  id="mamuthub-map-frame" 
   src="${appOrigin}/?embed=true&view=map" 
-  width="100%" 
-  height="750" 
-  style="border: 0; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%;" 
-  allow="clipboard-write"
-  loading="lazy"
-  title="Türkiye Girişimcilik Ekosistem Haritası"
+  style="width: 100%; border: none; min-height: 800px; overflow: hidden; display: block;" 
+  scrolling="no"
 ></iframe>
-<script src="${appOrigin}/embed-autoresize.js" async></script>`;
+
+<script>
+  // Iframe yüksekliğini içeriğe göre otomatik genişleten dinamik dinleyici
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'MAMUTHUB_RESIZE') {
+      var iframe = document.getElementById('mamuthub-map-frame');
+      if (iframe && e.data.height) {
+        iframe.style.height = (e.data.height + 30) + 'px';
+      }
+    }
+  });
+</script>`;
 
   const handleCopyEmbedCode = () => {
     navigator.clipboard.writeText(iframeEmbedCode);
@@ -170,7 +182,7 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
   };
 
   return (
-    <div className={`space-y-6 ${isEmbedMode ? 'p-2 sm:p-4 bg-slate-950 text-white min-h-screen' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
+    <div className={`space-y-6 ${isEmbedMode ? 'p-3 sm:p-5 pb-6 bg-slate-950 text-white rounded-2xl' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
       
       {/* Header Banner */}
       {!isEmbedMode && (
@@ -200,138 +212,142 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
         </div>
       )}
 
-      {/* Stats KPI Overview */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
-          <div className="flex items-center space-x-2 text-slate-400 text-xs font-semibold mb-1">
-            <MapPin className="w-4 h-4 text-emerald-400" />
-            <span>Aktif Şehir Sayısı</span>
+      {/* Stats KPI Overview - Only shown in full view */}
+      {!isEmbedMode && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+            <div className="flex items-center space-x-2 text-slate-400 text-xs font-semibold mb-1">
+              <MapPin className="w-4 h-4 text-emerald-400" />
+              <span>Aktif Şehir Sayısı</span>
+            </div>
+            <p className="text-2xl font-black text-white">{sortedCities.length} <span className="text-xs text-slate-500 font-normal">/ 81 İl</span></p>
           </div>
-          <p className="text-2xl font-black text-white">{sortedCities.length} <span className="text-xs text-slate-500 font-normal">/ 81 İl</span></p>
-        </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
-          <div className="flex items-center space-x-2 text-slate-400 text-xs font-semibold mb-1">
-            <Building2 className="w-4 h-4 text-indigo-400" />
-            <span>Toplam Girişim (Startup)</span>
+          <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+            <div className="flex items-center space-x-2 text-slate-400 text-xs font-semibold mb-1">
+              <Building2 className="w-4 h-4 text-indigo-400" />
+              <span>Toplam Girişim (Startup)</span>
+            </div>
+            <p className="text-2xl font-black text-emerald-400">
+              {filteredEntities.filter(e => e.type === 'Startup').length}
+            </p>
           </div>
-          <p className="text-2xl font-black text-emerald-400">
-            {filteredEntities.filter(e => e.type === 'Startup').length}
-          </p>
-        </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
-          <div className="flex items-center space-x-2 text-slate-400 text-xs font-semibold mb-1">
-            <TrendingUp className="w-4 h-4 text-amber-400" />
-            <span>Yatırımcı & Fonlar</span>
+          <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+            <div className="flex items-center space-x-2 text-slate-400 text-xs font-semibold mb-1">
+              <TrendingUp className="w-4 h-4 text-amber-400" />
+              <span>Yatırımcı & Fonlar</span>
+            </div>
+            <p className="text-2xl font-black text-amber-400">
+              {filteredEntities.filter(e => e.type === 'Yatırımcı (VC)' || e.type === 'Melek Yatırımcı').length}
+            </p>
           </div>
-          <p className="text-2xl font-black text-amber-400">
-            {filteredEntities.filter(e => e.type === 'Yatırımcı (VC)' || e.type === 'Melek Yatırımcı').length}
-          </p>
-        </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
-          <div className="flex items-center space-x-2 text-slate-400 text-xs font-semibold mb-1">
-            <Globe className="w-4 h-4 text-teal-400" />
-            <span>En Büyük Merkez</span>
+          <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+            <div className="flex items-center space-x-2 text-slate-400 text-xs font-semibold mb-1">
+              <Globe className="w-4 h-4 text-teal-400" />
+              <span>En Büyük Merkez</span>
+            </div>
+            <p className="text-xl font-black text-white truncate">
+              {sortedCities[0] ? `${sortedCities[0].name} (${sortedCities[0].total})` : '-'}
+            </p>
           </div>
-          <p className="text-xl font-black text-white truncate">
-            {sortedCities[0] ? `${sortedCities[0].name} (${sortedCities[0].total})` : '-'}
-          </p>
         </div>
-      </div>
+      )}
 
-      {/* Analytical Visualizer Navigation Tabs */}
-      <div className="bg-slate-900/95 p-4 rounded-3xl border border-slate-800 shadow-xl space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 pb-2 border-b border-slate-800/80">
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-xs font-black uppercase tracking-wider text-slate-200">
-              Analiz & Görünüm Modu Seçimi
+      {/* Analytical Visualizer Navigation Tabs - Only shown in full view */}
+      {!isEmbedMode && (
+        <div className="bg-slate-900/95 p-4 rounded-3xl border border-slate-800 shadow-xl space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 pb-2 border-b border-slate-800/80">
+            <div className="flex items-center space-x-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-xs font-black uppercase tracking-wider text-slate-200">
+                Analiz & Görünüm Modu Seçimi
+              </span>
+              <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                5 Görünüm Modu
+              </span>
+            </div>
+            <span className="text-[11px] text-slate-400 font-medium">
+              Tıklayarak harita, şehir karşılaştırma, ısı haritası ve altyapı modları arasında geçiş yapabilirsiniz.
             </span>
-            <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-              5 Görünüm Modu
-            </span>
           </div>
-          <span className="text-[11px] text-slate-400 font-medium">
-            Tıklayarak harita, şehir karşılaştırma, ısı haritası ve altyapı modları arasında geçiş yapabilirsiniz.
-          </span>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-1">
-          {[
-            {
-              id: 'map' as VisualizationTab,
-              label: '81 İl Haritası',
-              desc: 'İl bazlı görünüm & liste',
-              icon: Globe,
-              iconColor: 'text-emerald-400',
-            },
-            {
-              id: 'compare' as VisualizationTab,
-              label: 'Şehir Karşılaştırma',
-              desc: 'Yan yana 3 şehir analizi',
-              icon: TrendingUp,
-              iconColor: 'text-indigo-400',
-            },
-            {
-              id: 'heatmap' as VisualizationTab,
-              label: 'Bölgesel Isı Haritası',
-              desc: '7 coğrafi bölge & katsayı',
-              icon: Flame,
-              iconColor: 'text-amber-400',
-            },
-            {
-              id: 'radar' as VisualizationTab,
-              label: 'Sektörel Radar & Akış',
-              desc: 'Aşama aktarımı & küme',
-              icon: Network,
-              iconColor: 'text-teal-400',
-            },
-            {
-              id: 'infrastructure' as VisualizationTab,
-              label: 'Teknopark Radarı',
-              desc: 'TGB & Kuluçka haritası',
-              icon: Building2,
-              iconColor: 'text-pink-400',
-            },
-          ].map((tab) => {
-            const isActive = activeTab === tab.id;
-            const Icon = tab.icon;
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-1">
+            {[
+              {
+                id: 'map' as VisualizationTab,
+                label: '81 İl Haritası',
+                desc: 'İl bazlı görünüm & liste',
+                icon: Globe,
+                iconColor: 'text-emerald-400',
+              },
+              {
+                id: 'compare' as VisualizationTab,
+                label: 'Şehir Karşılaştırma',
+                desc: 'Yan yana 3 şehir analizi',
+                icon: TrendingUp,
+                iconColor: 'text-indigo-400',
+              },
+              {
+                id: 'heatmap' as VisualizationTab,
+                label: 'Bölgesel Isı Haritası',
+                desc: '7 coğrafi bölge & katsayı',
+                icon: Flame,
+                iconColor: 'text-amber-400',
+              },
+              {
+                id: 'radar' as VisualizationTab,
+                label: 'Sektörel Radar & Akış',
+                desc: 'Aşama aktarımı & küme',
+                icon: Network,
+                iconColor: 'text-teal-400',
+              },
+              {
+                id: 'infrastructure' as VisualizationTab,
+                label: 'Teknopark Radarı',
+                desc: 'TGB & Kuluçka haritası',
+                icon: Building2,
+                iconColor: 'text-pink-400',
+              },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              const Icon = tab.icon;
 
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative p-3.5 rounded-2xl text-left transition-all duration-200 cursor-pointer flex flex-col justify-between border ${
-                  isActive
-                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 border-emerald-300 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-400/40 translate-y-[-2px]'
-                    : 'bg-slate-950/80 hover:bg-slate-800/90 text-slate-300 border-slate-800 hover:border-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between space-x-2 mb-2">
-                  <div className={`p-2 rounded-xl ${isActive ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-900 text-slate-300'}`}>
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-slate-950' : tab.iconColor}`} />
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative p-3.5 rounded-2xl text-left transition-all duration-200 cursor-pointer flex flex-col justify-between border ${
+                    isActive
+                      ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 border-emerald-300 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-400/40 translate-y-[-2px]'
+                      : 'bg-slate-950/80 hover:bg-slate-800/90 text-slate-300 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between space-x-2 mb-2">
+                    <div className={`p-2 rounded-xl ${isActive ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-900 text-slate-300'}`}>
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-slate-950' : tab.iconColor}`} />
+                    </div>
+                    {isActive && (
+                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-950 text-emerald-400 shadow-sm">
+                        Aktif Mod
+                      </span>
+                    )}
                   </div>
-                  {isActive && (
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-950 text-emerald-400 shadow-sm">
-                      Aktif Mod
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <div className={`text-xs font-black ${isActive ? 'text-slate-950' : 'text-white'}`}>
-                    {tab.label}
+                  <div>
+                    <div className={`text-xs font-black ${isActive ? 'text-slate-950' : 'text-white'}`}>
+                      {tab.label}
+                    </div>
+                    <div className={`text-[10px] mt-0.5 ${isActive ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
+                      {tab.desc}
+                    </div>
                   </div>
-                  <div className={`text-[10px] mt-0.5 ${isActive ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
-                    {tab.desc}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Render Active Analytical View */}
       {activeTab === 'compare' && (
@@ -404,10 +420,10 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
       </div>
 
       {/* Main Interactive Map & Details Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         
         {/* Turkey Map Canvas Card */}
-        <div className="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between space-y-4">
+        <div className="md:col-span-2 bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-white flex items-center space-x-2">
@@ -602,36 +618,36 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
         </div>
 
         {/* Selected City Detail & Leaderboard Column */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           
           {/* Selected City Inspector Card */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 space-y-3 shadow-xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div className="flex items-center space-x-2">
-                <MapPin className="w-5 h-5 text-emerald-400" />
+                <MapPin className="w-4 h-4 text-emerald-400" />
                 <div>
-                  <h3 className="text-lg font-black text-white">{selectedCity || 'Şehir Seçin'}</h3>
-                  <p className="text-[11px] text-slate-400">Seçili Şehirdeki Kayıtlı Ekosistem Üyeleri</p>
+                  <h3 className="text-base font-black text-white">{selectedCity || 'Şehir Seçin'}</h3>
+                  <p className="text-[10px] text-slate-400">Seçili Şehirdeki Ekosistem Üyeleri</p>
                 </div>
               </div>
-              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-extrabold">
+              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold">
                 {activeCityData ? activeCityData.total : 0} Üye
               </span>
             </div>
 
             {/* City Entities List */}
             {activeCityData && activeCityData.entities.length > 0 ? (
-              <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[210px] overflow-y-auto pr-1">
                 {activeCityData.entities.map(item => (
-                  <div key={item.id} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all space-y-1">
+                  <div key={item.id} className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-white truncate max-w-[170px]">{item.name}</span>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-800 text-indigo-300">
+                      <span className="font-bold text-xs text-white truncate max-w-[160px]">{item.name}</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-800 text-indigo-300">
                         {item.type}
                       </span>
                     </div>
 
-                    <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                    <div className="text-[10px] text-slate-400 flex items-center justify-between">
                       <span className="text-emerald-400 font-medium">{item.category}</span>
                       {item.stage && <span className="text-slate-500">{item.stage}</span>}
                     </div>
@@ -641,7 +657,7 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
                         href={item.website.startsWith('http') ? item.website : `https://${item.website}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[10px] text-slate-400 hover:text-white flex items-center space-x-1 pt-1"
+                        className="text-[10px] text-slate-400 hover:text-white flex items-center space-x-1 pt-0.5"
                       >
                         <ExternalLink className="w-3 h-3 text-slate-500" />
                         <span className="truncate">{item.website}</span>
@@ -651,39 +667,39 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
                 ))}
               </div>
             ) : (
-              <div className="py-8 text-center text-slate-500 text-xs">
+              <div className="py-6 text-center text-slate-500 text-xs">
                 Bu şehirde henüz kayıtlı girişimci veya yatırımlı şirket bulunmuyor.
               </div>
             )}
           </div>
 
           {/* Top City Hubs Leaderboard */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 space-y-3 shadow-xl">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 space-y-2.5 shadow-xl">
             <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center space-x-2">
               <TrendingUp className="w-4 h-4 text-emerald-400" />
               <span>En Aktif Şehir Sıralaması</span>
             </h3>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {sortedCities.slice(0, 5).map((city, idx) => {
                 const percentage = Math.round((city.total / (filteredEntities.length || 1)) * 100);
                 return (
                   <div
                     key={city.name}
                     onClick={() => setSelectedCity(city.name)}
-                    className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                    className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                       selectedCity === city.name
                         ? 'bg-emerald-950/40 border-emerald-500/50'
                         : 'bg-slate-950 border-slate-800/80 hover:border-slate-700'
                     }`}
                   >
-                    <div className="flex items-center space-x-2.5">
-                      <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-300 font-extrabold text-[10px] flex items-center justify-center">
+                    <div className="flex items-center space-x-2">
+                      <span className="w-4 h-4 rounded-full bg-slate-800 text-slate-300 font-extrabold text-[9px] flex items-center justify-center">
                         #{idx + 1}
                       </span>
                       <div>
                         <div className="text-xs font-bold text-white">{city.name}</div>
-                        <div className="text-[10px] text-slate-400">{city.startups} Startup · {city.vcs} VC</div>
+                        <div className="text-[9px] text-slate-400">{city.startups} Startup · {city.vcs} VC</div>
                       </div>
                     </div>
 

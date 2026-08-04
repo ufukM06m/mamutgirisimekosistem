@@ -187,34 +187,61 @@ export default function App() {
     return false;
   })();
 
-  // Automatically broadcast content height to parent window (WordPress) for seamless auto-resizing iframe
+  // Automatically broadcast content height to parent window (WordPress/Vercel) for seamless auto-resizing iframe
+  const lastSentHeightRef = React.useRef<number>(0);
+
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    let lastWindowWidth = window.innerWidth;
 
     const sendHeight = () => {
       const rootEl = document.getElementById('root');
       if (!rootEl) return;
-      const contentHeight = Math.ceil(rootEl.scrollHeight || rootEl.getBoundingClientRect().height);
-      if (window.parent && window.parent !== window && contentHeight > 0) {
+      const container = (rootEl.firstElementChild as HTMLElement) || rootEl;
+      
+      // Calculate exact bounding height of content box without viewport feedback loop
+      const contentHeight = Math.ceil(container.getBoundingClientRect().height);
+
+      if (
+        window.parent && 
+        window.parent !== window && 
+        contentHeight > 0 && 
+        Math.abs(lastSentHeightRef.current - contentHeight) >= 5
+      ) {
+        lastSentHeightRef.current = contentHeight;
         window.parent.postMessage({ type: 'MAMUTHUB_RESIZE', height: contentHeight }, '*');
       }
     };
 
     sendHeight();
+    const t1 = setTimeout(sendHeight, 150);
+    const t2 = setTimeout(sendHeight, 500);
 
     let resizeObserver: ResizeObserver | null = null;
     const rootEl = document.getElementById('root');
     if (typeof ResizeObserver !== 'undefined' && rootEl) {
+      const container = (rootEl.firstElementChild as HTMLElement) || rootEl;
       resizeObserver = new ResizeObserver(() => sendHeight());
-      resizeObserver.observe(rootEl);
+      resizeObserver.observe(container);
     }
 
-    window.addEventListener('resize', sendHeight);
+    const handleWindowResize = () => {
+      // Ignore height-only window resizes caused by parent setting iframe style height
+      if (window.innerWidth !== lastWindowWidth) {
+        lastWindowWidth = window.innerWidth;
+        sendHeight();
+      }
+    };
+
+    window.addEventListener('resize', handleWindowResize);
     return () => {
-      window.removeEventListener('resize', sendHeight);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener('resize', handleWindowResize);
       if (resizeObserver) resizeObserver.disconnect();
     };
-  }, [entities, isEmbedMode, isTestEmbedMode]);
+  }, [entities, activeTab, isEmbedMode, isTestEmbedMode]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -505,7 +532,7 @@ export default function App() {
   };
 
   return (
-    <div className={`${isEmbedMode ? 'bg-slate-50' : 'min-h-screen bg-slate-50'} text-slate-900 font-sans flex flex-col antialiased`}>
+    <div className={`${isEmbedMode ? (activeTab === 'map' ? 'bg-slate-950 text-white h-auto min-h-0' : 'bg-slate-50 text-slate-900 h-auto min-h-0') : 'min-h-screen flex flex-col bg-slate-50 text-slate-900'} font-sans antialiased`}>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-emerald-500/30 text-xs font-semibold animate-in slide-in-from-bottom-5 duration-200 flex items-center space-x-2">
@@ -547,7 +574,7 @@ export default function App() {
       )}
 
       {/* Main Content Area */}
-      <main className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 ${isEmbedMode ? 'py-4' : 'py-8'}`}>
+      <main className={`max-w-7xl w-full mx-auto ${isEmbedMode ? 'px-1 sm:px-3 py-2 pb-6 h-auto' : 'px-4 sm:px-6 lg:px-8 py-8 flex-1'}`}>
         {activeTab === 'directory' && (
           <DirectoryView
             entities={entities}

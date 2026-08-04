@@ -7,8 +7,10 @@ import Parser from 'rss-parser';
 import { INITIAL_ENTITIES } from './src/data/mockData';
 import { deduplicateAndNormalizeEntities } from './src/utils/categoryHelper';
 
+export const app = express();
+app.use(express.json({ limit: '10mb' }));
+
 async function startServer() {
-  const app = express();
   const PORT = 3000;
 
   // Initialize Gemini AI lazily/safely
@@ -547,13 +549,13 @@ Format:
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
@@ -561,9 +563,15 @@ Format:
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
