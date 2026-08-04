@@ -37,6 +37,16 @@ export const PublicSubmissionModal: React.FC<PublicSubmissionModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    let cleanWebsite = formData.website.trim();
+    if (cleanWebsite && !cleanWebsite.startsWith('http://') && !cleanWebsite.startsWith('https://')) {
+      cleanWebsite = `https://${cleanWebsite}`;
+    }
+
+    let cleanLinkedin = formData.linkedin.trim();
+    if (cleanLinkedin && !cleanLinkedin.startsWith('http://') && !cleanLinkedin.startsWith('https://')) {
+      cleanLinkedin = `https://${cleanLinkedin}`;
+    }
+
     const newEntity: Omit<EcosystemEntity, 'id' | 'lastUpdated'> = {
       name: formData.name.trim(),
       titleOrCompany: formData.titleOrCompany.trim(),
@@ -44,14 +54,17 @@ export const PublicSubmissionModal: React.FC<PublicSubmissionModalProps> = ({
       category: formData.category,
       city: formData.city.trim() || 'İstanbul',
       description: formData.description.trim(),
-      website: formData.website.trim() || undefined,
-      linkedin: formData.linkedin.trim() || undefined,
+      website: cleanWebsite || undefined,
+      linkedin: cleanLinkedin || undefined,
       avatarUrl: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=300',
       stage: formData.type === 'Startup' || formData.type === 'Girişimci' ? formData.stage : undefined,
       teamSize: formData.teamSize,
       investmentFocus: formData.investmentFocus ? formData.investmentFocus.split(',').map(s => s.trim()) : undefined,
       portfolioCount: formData.portfolioCount ? parseInt(formData.portfolioCount, 10) : undefined,
-      featured: false
+      featured: false,
+      status: 'pending',
+      submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      submitterEmail: formData.submitterEmail.trim() || undefined
     };
 
     onSubmit(newEntity);
@@ -104,8 +117,8 @@ export const PublicSubmissionModal: React.FC<PublicSubmissionModalProps> = ({
               <CheckCircle2 className="w-10 h-10" />
             </div>
             <h3 className="text-2xl font-black text-slate-900">Harika! Kaydınız Alındı 🎉</h3>
-            <p className="text-sm text-slate-600 max-w-md mx-auto">
-              Girişiminiz / Profiliniz başarıyla Mamuthub ekosistem dizinine eklendi ve hafızaya kaydedildi.
+            <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+              Profiliniz moderasyon kutusuna (onay bekleyen kayıtlar) gönderildi. Admin onayının ardından canlı dizinde görünecektir.
             </p>
           </div>
         ) : (
@@ -216,8 +229,8 @@ export const PublicSubmissionModal: React.FC<PublicSubmissionModalProps> = ({
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">Web Sitesi URL</label>
                   <input
-                    type="url"
-                    placeholder="https://girisim.com"
+                    type="text"
+                    placeholder="ör. girisim.com veya https://girisim.com"
                     value={formData.website}
                     onChange={e => setFormData(prev => ({ ...prev, website: e.target.value }))}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -226,8 +239,8 @@ export const PublicSubmissionModal: React.FC<PublicSubmissionModalProps> = ({
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">LinkedIn Profili</label>
                   <input
-                    type="url"
-                    placeholder="https://linkedin.com/in/veya-company"
+                    type="text"
+                    placeholder="ör. linkedin.com/in/profil"
                     value={formData.linkedin}
                     onChange={e => setFormData(prev => ({ ...prev, linkedin: e.target.value }))}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"

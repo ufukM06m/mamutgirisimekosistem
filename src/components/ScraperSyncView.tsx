@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ScraperLog, EcosystemEntity, EntityType, CategoryType, StageType } from '../types';
+import { normalizeCategory } from '../utils/categoryHelper';
 import { Cpu, RefreshCw, CheckCircle2, ShieldCheck, Clock, Server, GitBranch, FileCode2, Copy, Check, Newspaper, Sparkles, ArrowRight, ExternalLink } from 'lucide-react';
 
 interface ScraperSyncViewProps {
@@ -7,12 +8,116 @@ interface ScraperSyncViewProps {
   onTriggerScrape: () => void;
   isScraping: boolean;
   onAddEntity?: (entity: Omit<EcosystemEntity, 'id' | 'lastUpdated'>) => void;
+  onAddPendingEntity?: (entity: Omit<EcosystemEntity, 'id' | 'lastUpdated'>) => void;
 }
 
-export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({ logs, onTriggerScrape, isScraping, onAddEntity }) => {
+export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
+  logs,
+  onTriggerScrape,
+  isScraping,
+  onAddEntity,
+  onAddPendingEntity
+}) => {
   const [syncFrequency, setSyncFrequency] = useState('12_hours');
   const [copiedWorkflow, setCopiedWorkflow] = useState(false);
   const [extractedNewsIds, setExtractedNewsIds] = useState<string[]>([]);
+  
+  // Custom AI Site Link Ingestion state
+  const [targetUrl, setTargetUrl] = useState('');
+  const [maxPages, setMaxPages] = useState<number>(5);
+  const [useHeadless, setUseHeadless] = useState(false);
+  const [customNotes, setCustomNotes] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isExtractingUrl, setIsExtractingUrl] = useState(false);
+  const [urlExtractionError, setUrlExtractionError] = useState<string | null>(null);
+  const [aiExtractedEntities, setAiExtractedEntities] = useState<EcosystemEntity[]>([]);
+  const [addedEntityIds, setAddedEntityIds] = useState<string[]>([]);
+  const [extractionStats, setExtractionStats] = useState<{ pagesCrawled?: number; chunksProcessed?: number } | null>(null);
+
+  const handleAiExtractUrl = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetUrl.trim()) return;
+
+    setIsExtractingUrl(true);
+    setUrlExtractionError(null);
+    setAiExtractedEntities([]);
+    setExtractionStats(null);
+
+    try {
+      const res = await fetch('/api/ai-extract-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: targetUrl.trim(),
+          maxPages,
+          useHeadless,
+          notes: customNotes.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Link incelenirken hata oluştu');
+      }
+
+      setAiExtractedEntities(data.data || data.entities || []);
+      setExtractionStats({
+        pagesCrawled: data.pagesCrawled || 1,
+        chunksProcessed: data.chunksProcessed || 1
+      });
+    } catch (err: any) {
+      setUrlExtractionError(err.message || 'Veri çekilemedi. Lütfen bağlantıyı kontrol edin.');
+    } finally {
+      setIsExtractingUrl(false);
+    }
+  };
+
+  const handleAddAllToPending = () => {
+    if (!onAddPendingEntity || aiExtractedEntities.length === 0) return;
+    const newAddedIds: string[] = [...addedEntityIds];
+    aiExtractedEntities.forEach((item, idx) => {
+      const itemId = item.id || String(idx);
+      if (!newAddedIds.includes(itemId)) {
+        onAddPendingEntity({
+          name: item.name,
+          titleOrCompany: item.titleOrCompany || item.category,
+          type: item.type || 'Startup',
+          category: normalizeCategory(item.category),
+          city: item.city || 'İstanbul',
+          description: item.description,
+          website: item.website,
+          stage: item.stage,
+          status: 'pending',
+          submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+        });
+        newAddedIds.push(itemId);
+      }
+    });
+    setAddedEntityIds(newAddedIds);
+  };
+
+  const handleAddAllToDirectPublish = () => {
+    if (!onAddEntity || aiExtractedEntities.length === 0) return;
+    const newAddedIds: string[] = [...addedEntityIds];
+    aiExtractedEntities.forEach((item, idx) => {
+      const itemId = item.id || String(idx);
+      if (!newAddedIds.includes(itemId)) {
+        onAddEntity({
+          name: item.name,
+          titleOrCompany: item.titleOrCompany || item.category,
+          type: item.type || 'Startup',
+          category: normalizeCategory(item.category),
+          city: item.city || 'İstanbul',
+          description: item.description,
+          website: item.website,
+          stage: item.stage,
+          status: 'active'
+        });
+        newAddedIds.push(itemId);
+      }
+    });
+    setAddedEntityIds(newAddedIds);
+  };
   const [selectedSources, setSelectedSources] = useState({
     webrazzi: true,
     egirisim: true,
@@ -189,6 +294,230 @@ jobs:
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Custom AI Link Scraper (User Request 4) */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 border border-indigo-500/30 shadow-xl space-y-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2.5 bg-indigo-500/20 text-indigo-300 rounded-xl border border-indigo-400/30">
+            <Sparkles className="w-6 h-6 animate-pulse" />
+          </div>
+          <div>
+            <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/30 text-indigo-200 uppercase">
+              Yapay Zeka Destekli Canlı Web Tarayıcı
+            </span>
+            <h2 className="text-lg font-extrabold text-white">İstediğiniz Sitenin veya Etkinliğin Linkini Yapıştırın</h2>
+            <p className="text-xs text-slate-300">
+              Örn: İTÜ Çekirdek Big Bang, BTM, Webrazzi veya herhangi bir haber/etkinlik sitesi linkini verin. AI siteyi inceler, girişimleri derler ve moderasyona hazırlar.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleAiExtractUrl} className="space-y-3 pt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <input
+              type="url"
+              required
+              placeholder="https://itucekirdek.com/bigbang veya istediğiniz bir haber/etkinlik site linki..."
+              value={targetUrl}
+              onChange={e => setTargetUrl(e.target.value)}
+              className="flex-1 p-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            
+            <div className="flex items-center gap-2">
+              <select
+                value={maxPages}
+                onChange={e => setMaxPages(Number(e.target.value))}
+                className="p-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-xs text-indigo-200 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shrink-0"
+                title="Taranacak Maksimum Sayfa / Sayfalama Derinliği"
+              >
+                <option value={1}>1 Sayfa (Hızlı)</option>
+                <option value={3}>3 Sayfa</option>
+                <option value={5}>5 Sayfa (Önerilen)</option>
+                <option value={10}>10 Sayfa (Tüm Liste)</option>
+              </select>
+
+              <button
+                type="submit"
+                disabled={isExtractingUrl}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl text-xs transition-all shadow-md flex items-center justify-center space-x-2 shrink-0"
+              >
+                <RefreshCw className={`w-4 h-4 ${isExtractingUrl ? 'animate-spin' : ''}`} />
+                <span>{isExtractingUrl ? 'Sayfalar Taranıyor...' : 'Eksiksiz Tüm Liste Çıkar'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] text-slate-400">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="hover:text-indigo-300 underline flex items-center space-x-1"
+            >
+              <span>{showAdvanced ? '▲ Özel Not / Ham Metin Gizle' : '▼ Özel Not veya Ham Metin Ekle'}</span>
+            </button>
+            <span className="text-[10px] text-indigo-300">
+              * Sayfalamalı (Pagination) sitelerde sonraki sayfalar otomatik taranır.
+            </span>
+          </div>
+
+          {showAdvanced && (
+            <div className="p-3 bg-slate-950/90 rounded-xl border border-slate-800 space-y-3">
+              <div className="flex items-center space-x-2 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+                <input
+                  type="checkbox"
+                  id="useHeadlessToggle"
+                  checked={useHeadless}
+                  onChange={e => setUseHeadless(e.target.checked)}
+                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                />
+                <label htmlFor="useHeadlessToggle" className="text-xs text-indigo-200 font-semibold cursor-pointer flex items-center space-x-1.5">
+                  <span>🌐 Derin Headless DOM & JS Sanal Motoru Çalıştır</span>
+                  <span className="text-[10px] text-slate-400 font-normal">(Saf React / Client-Side CSR siteleri için önerilir)</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-slate-300 font-semibold mb-1">
+                  Ekstra Notlar Veya Kopyalanan Ham Metin (İsteğe Bağlı):
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Örn: Sayfada listelenen tüm kuluçka girişimlerini ve detaylarını eksiksiz çıkar..."
+                  value={customNotes}
+                  onChange={e => setCustomNotes(e.target.value)}
+                  className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {urlExtractionError && (
+            <p className="text-xs text-red-400 font-semibold bg-red-950/50 p-2.5 rounded-lg border border-red-800/40">
+              ⚠️ {urlExtractionError}
+            </p>
+          )}
+        </form>
+
+        {/* Display AI Extracted Items */}
+        {aiExtractedEntities.length > 0 && (
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3 mt-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+              <div className="space-y-1">
+                <span className="font-bold text-xs text-emerald-400 flex items-center space-x-1">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>Yapay Zeka Toplam {aiExtractedEntities.length} Adet Girişim Derledi!</span>
+                </span>
+                {extractionStats && (
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-indigo-300 font-medium pt-0.5">
+                    <span className="bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/60">
+                      📄 Sayfa Taraması: <strong>{extractionStats.pagesCrawled || 1} Sayfa</strong>
+                    </span>
+                    <span className="bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800/60">
+                      🧩 AI Chunk Analizi: <strong>{extractionStats.chunksProcessed || 1} Paralel Parça</strong>
+                    </span>
+                    <span className="bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/60 text-emerald-300">
+                      ⚡ SPA/JSON-LD Taraması Aktif
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleAddAllToPending}
+                  className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all flex items-center space-x-1"
+                >
+                  <span>🛡️ Tümünü Moderasyona Ekle ({aiExtractedEntities.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddAllToDirectPublish}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all flex items-center space-x-1"
+                >
+                  <span>⚡ Tümünü Doğrudan Yayınla</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+              {aiExtractedEntities.map((item, idx) => {
+                const isAdded = addedEntityIds.includes(item.id || String(idx));
+                return (
+                  <div key={idx} className="bg-slate-950/90 p-3 rounded-xl border border-slate-800 flex items-start justify-between gap-3 text-xs">
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-white text-sm">{item.name}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 font-semibold">{item.type}</span>
+                        <span className="text-slate-400">• {item.category}</span>
+                      </div>
+                      <p className="text-slate-300 text-[11px] leading-relaxed">{item.description}</p>
+                      {item.website && (
+                        <a href={item.website} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline text-[10px]">
+                          {item.website}
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <button
+                        disabled={isAdded}
+                        onClick={() => {
+                          if (onAddPendingEntity) {
+                            onAddPendingEntity({
+                              name: item.name,
+                              titleOrCompany: item.titleOrCompany || item.category,
+                              type: item.type || 'Startup',
+                              category: normalizeCategory(item.category),
+                              city: item.city || 'İstanbul',
+                              description: item.description,
+                              website: item.website,
+                              stage: item.stage,
+                              status: 'pending',
+                              submittedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+                            });
+                          }
+                          setAddedEntityIds(prev => [...prev, item.id || String(idx)]);
+                        }}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition-all ${
+                          isAdded
+                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/50'
+                            : 'bg-amber-600 hover:bg-amber-500 text-white shadow-sm'
+                        }`}
+                      >
+                        {isAdded ? '✓ Moderasyonda' : '🛡️ Moderasyona Gönder'}
+                      </button>
+
+                      <button
+                        disabled={isAdded}
+                        onClick={() => {
+                          if (onAddEntity) {
+                            onAddEntity({
+                              name: item.name,
+                              titleOrCompany: item.titleOrCompany || item.category,
+                              type: item.type || 'Startup',
+                              category: normalizeCategory(item.category),
+                              city: item.city || 'İstanbul',
+                              description: item.description,
+                              website: item.website,
+                              stage: item.stage,
+                              status: 'active'
+                            });
+                          }
+                          setAddedEntityIds(prev => [...prev, item.id || String(idx)]);
+                        }}
+                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-lg text-[11px]"
+                      >
+                        Direct Publish
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Workflow Explanation Banner */}

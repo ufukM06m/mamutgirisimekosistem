@@ -1,24 +1,85 @@
 import React, { useState } from 'react';
-import { EcosystemEntity, ScraperLog, ActiveTab } from './types';
+import { EcosystemEntity, ScraperLog, ActiveTab, IssueReport, GitHubConfig } from './types';
 import { INITIAL_ENTITIES, INITIAL_SCRAPER_LOGS } from './data/mockData';
+import { fetchEntitiesFromGitHub, commitEntitiesToGitHub, DEFAULT_GITHUB_CONFIG } from './lib/githubSync';
+import { deduplicateAndNormalizeEntities } from './utils/categoryHelper';
 import { Navbar } from './components/Navbar';
 import { DirectoryView } from './components/DirectoryView';
 import { AdminView } from './components/AdminView';
 import { ScraperSyncView } from './components/ScraperSyncView';
+import { NewsFeedView } from './components/NewsFeedView';
+import { TurkeyMapView } from './components/TurkeyMapView';
 import { PublicSubmissionModal } from './components/PublicSubmissionModal';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Sparkles, Trash2 } from 'lucide-react';
 
 export default function App() {
   const [entities, setEntities] = useState<EcosystemEntity[]>(() => {
     try {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('mamuthub_entities');
-        if (saved) return JSON.parse(saved);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return deduplicateAndNormalizeEntities(parsed);
+        }
       }
     } catch (e) {
       console.error('Failed to load entities from localStorage:', e);
     }
-    return INITIAL_ENTITIES;
+    return deduplicateAndNormalizeEntities(INITIAL_ENTITIES);
+  });
+
+  const [pendingEntities, setPendingEntities] = useState<EcosystemEntity[]>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('mamuthub_pending_entities');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return deduplicateAndNormalizeEntities(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load pendingEntities from localStorage:', e);
+    }
+    return deduplicateAndNormalizeEntities([
+      {
+        id: 'pending-demo-1',
+        name: 'Synthetix AI',
+        titleOrCompany: 'Yapay Zeka Tıbbi Tanı Yazılımı',
+        type: 'Startup',
+        category: 'Sağlık & Biyo',
+        city: 'İzmir',
+        description: 'Radyoloji görüntülerinden AI destekli erken teşhis koyan tıbbi yazılım çözümü.',
+        website: 'https://synthetixhealth.ai',
+        avatarUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=300',
+        lastUpdated: '2026-08-03 11:20',
+        status: 'pending',
+        submittedAt: '2026-08-03 11:20',
+        submitterEmail: 'kurucu@synthetixhealth.ai'
+      }
+    ]);
+  });
+
+  const [issueReports, setIssueReports] = useState<IssueReport[]>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('mamuthub_issue_reports');
+        if (saved) return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to load issueReports from localStorage:', e);
+    }
+    return [
+      {
+        id: 'issue-demo-1',
+        entityId: '1',
+        entityName: 'Getir',
+        reportType: 'Güncelleme İsteği',
+        description: 'Getir yeni küresel finansman yatırım turunu tamamladı, ekip büyüklüğü güncellenebilir.',
+        createdAt: '2026-08-02 14:15',
+        status: 'pending',
+        reporterEmail: 'analist@mamuthub.com'
+      }
+    ];
   });
 
   const [logs, setLogs] = useState<ScraperLog[]>(() => {
@@ -33,10 +94,43 @@ export default function App() {
     return INITIAL_SCRAPER_LOGS;
   });
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('directory');
+  const [githubConfig, setGithubConfig] = useState<GitHubConfig>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('mamuthub_github_config');
+        if (saved) return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to load githubConfig from localStorage:', e);
+    }
+    return DEFAULT_GITHUB_CONFIG;
+  });
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const view = (params.get('view') || params.get('tab') || '').toLowerCase();
+      if (view === 'map' || view === 'harita') return 'map';
+      if (view === 'news' || view === 'haberler') return 'news';
+      if (view === 'admin') return 'admin';
+      if (view === 'scraper') return 'scraper';
+    }
+    return 'directory';
+  });
   const [isScraping, setIsScraping] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isPublicSubmissionOpen, setIsPublicSubmissionOpen] = useState(false);
+
+  // Sync githubConfig to localStorage
+  React.useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mamuthub_github_config', JSON.stringify(githubConfig));
+      }
+    } catch (e) {
+      console.error('Failed to save githubConfig to localStorage:', e);
+    }
+  }, [githubConfig]);
 
   // Sync entities to localStorage
   React.useEffect(() => {
@@ -49,6 +143,28 @@ export default function App() {
     }
   }, [entities]);
 
+  // Sync pending entities to localStorage
+  React.useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mamuthub_pending_entities', JSON.stringify(pendingEntities));
+      }
+    } catch (e) {
+      console.error('Failed to save pendingEntities to localStorage:', e);
+    }
+  }, [pendingEntities]);
+
+  // Sync issue reports to localStorage
+  React.useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mamuthub_issue_reports', JSON.stringify(issueReports));
+      }
+    } catch (e) {
+      console.error('Failed to save issueReports to localStorage:', e);
+    }
+  }, [issueReports]);
+
   // Sync logs to localStorage
   React.useEffect(() => {
     try {
@@ -60,15 +176,13 @@ export default function App() {
     }
   }, [logs]);
 
-  // Check URL search parameters or window iframe context
-  const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
-
+  // Check if URL search parameters explicitly ask for embed mode (e.g. ?embed=true)
   const [isTestEmbedMode, setIsTestEmbedMode] = useState<boolean>(false);
 
-  const isEmbedMode = isInIframe || isTestEmbedMode || (() => {
+  const isEmbedMode = isTestEmbedMode || (() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      return params.get('embed') === 'true' || params.get('embed') === '1';
+      return params.get('embed') === 'true' || params.get('embed') === '1' || params.get('mode') === 'embed';
     }
     return false;
   })();
@@ -107,14 +221,146 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const generateUniqueId = (prefix = 'ent') => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+  const handleCleanDuplicates = () => {
+    setEntities(prev => deduplicateAndNormalizeEntities(prev));
+    setPendingEntities(prev => deduplicateAndNormalizeEntities(prev));
+    showToast('Tüm tekrarlar temizlendi ve kategoriler standartlaştırıldı!');
+  };
+
   const handleAddEntity = (newEntityData: Omit<EcosystemEntity, 'id' | 'lastUpdated'>) => {
-    const newEntity: EcosystemEntity = {
-      ...newEntityData,
-      id: Date.now().toString(),
+    const cleanName = (newEntityData.name || '').trim();
+    if (!cleanName) return;
+
+    setEntities(prev => {
+      const updatedEntity: EcosystemEntity = {
+        ...newEntityData,
+        name: cleanName,
+        id: generateUniqueId('ent'),
+        status: 'active',
+        lastUpdated: new Date().toISOString().replace('T', ' ').substring(0, 16)
+      };
+      return deduplicateAndNormalizeEntities([updatedEntity, ...prev]);
+    });
+    showToast(`"${cleanName}" başarıyla canlı dizine eklendi!`);
+  };
+
+  const handleAddPendingEntity = (newEntityData: Omit<EcosystemEntity, 'id' | 'lastUpdated'>) => {
+    const cleanName = (newEntityData.name || '').trim();
+    if (!cleanName) return;
+
+    setPendingEntities(prev => {
+      const newPending: EcosystemEntity = {
+        ...newEntityData,
+        name: cleanName,
+        id: generateUniqueId('pending'),
+        status: 'pending',
+        lastUpdated: new Date().toISOString().replace('T', ' ').substring(0, 16)
+      };
+      return deduplicateAndNormalizeEntities([newPending, ...prev]);
+    });
+    showToast(`"${cleanName}" moderasyon kutusuna gönderildi.`);
+  };
+
+  const handleApprovePending = (pendingId: string) => {
+    const target = pendingEntities.find(p => p.id === pendingId);
+    if (!target) return;
+
+    const approved: EcosystemEntity = {
+      ...target,
+      id: generateUniqueId('pub'),
+      status: 'active',
       lastUpdated: new Date().toISOString().replace('T', ' ').substring(0, 16)
     };
-    setEntities(prev => [newEntity, ...prev]);
-    showToast(`"${newEntity.name}" başarıyla eklendi ve hafızaya kaydedildi!`);
+
+    setEntities(prev => deduplicateAndNormalizeEntities([approved, ...prev]));
+    setPendingEntities(prev => prev.filter(p => p.id !== pendingId));
+    showToast(`"${target.name}" onaylandı ve canlı dizinde yayınlandı! 🎉`);
+  };
+
+  const handleRejectPending = (pendingId: string) => {
+    const target = pendingEntities.find(p => p.id === pendingId);
+    setPendingEntities(prev => prev.filter(p => p.id !== pendingId));
+    if (target) {
+      showToast(`"${target.name}" kaydı reddedildi.`);
+    }
+  };
+
+  const handleSubmitIssueReport = (reportData: Omit<IssueReport, 'id' | 'createdAt' | 'status'>) => {
+    const newReport: IssueReport = {
+      ...reportData,
+      id: `report-${Date.now()}`,
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      status: 'pending'
+    };
+    setIssueReports(prev => [newReport, ...prev]);
+    showToast(`Düzeltme bildiriminiz alındı, admin paneline iletildi.`);
+  };
+
+  const handleResolveIssue = (issueId: string) => {
+    setIssueReports(prev => prev.map(i => i.id === issueId ? { ...i, status: 'resolved' } : i));
+    showToast('Bildirim çözüldü olarak işaretlendi.');
+  };
+
+  const handleDismissIssue = (issueId: string) => {
+    setIssueReports(prev => prev.map(i => i.id === issueId ? { ...i, status: 'dismissed' } : i));
+    showToast('Bildirim kapatıldı.');
+  };
+
+  const handleSyncWithGithubUrl = async (githubRawUrl: string): Promise<boolean> => {
+    try {
+      const res = await fetch(githubRawUrl);
+      if (!res.ok) return false;
+      const json = await res.json();
+      if (Array.isArray(json) && json.length > 0) {
+        setEntities(json);
+        showToast(`GitHub Raw veritabanından ${json.length} kayıt başarıyla yüklendi!`);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('GitHub Raw fetch error:', e);
+      return false;
+    }
+  };
+
+  const handlePullFromGithub = async (overrideConfig?: GitHubConfig): Promise<{ success: boolean; message: string }> => {
+    const cfg = overrideConfig || githubConfig;
+    const result = await fetchEntitiesFromGitHub(cfg);
+    if (result.success && result.data) {
+      setEntities(result.data);
+      const updatedCfg = {
+        ...cfg,
+        lastSyncedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        lastCommitSha: result.sha
+      };
+      setGithubConfig(updatedCfg);
+      showToast(`GitHub reposundan ${result.data.length} kayıt canlı veritabanına aktarıldı!`);
+      return { success: true, message: `${result.data.length} kayıt GitHub'dan başarıyla yüklendi.` };
+    } else {
+      return { success: false, message: result.error || 'GitHub verisi çekilemedi.' };
+    }
+  };
+
+  const handlePushToGithub = async (
+    overrideConfig?: GitHubConfig,
+    commitMsg: string = 'Update entities.json via Mamuthub Admin'
+  ): Promise<{ success: boolean; message: string }> => {
+    const cfg = overrideConfig || githubConfig;
+    const result = await commitEntitiesToGitHub(cfg, entities, commitMsg);
+    if (result.success) {
+      const updatedCfg = {
+        ...cfg,
+        lastSyncedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        lastCommitSha: result.sha
+      };
+      setGithubConfig(updatedCfg);
+      showToast('GitHub reponuza yeni commit atıldı ve veritabanınız güncellendi! 🚀');
+      return { success: true, message: `Commit Başarılı! SHA: ${result.sha?.substring(0, 7) || 'OK'}` };
+    } else {
+      return { success: false, message: result.error || 'GitHub Commit başarısız oldu.' };
+    }
   };
 
   const handleUpdateEntity = (updatedEntity: EcosystemEntity) => {
@@ -300,11 +546,26 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 ${isEmbedMode ? 'py-4' : 'py-8'}`}>
-        {(activeTab === 'directory' || isEmbedMode) && (
+        {activeTab === 'directory' && (
           <DirectoryView
             entities={entities}
             isEmbedMode={isEmbedMode}
             onOpenPublicSubmissionModal={() => setIsPublicSubmissionOpen(true)}
+            onSubmitIssueReport={handleSubmitIssueReport}
+          />
+        )}
+
+        {activeTab === 'map' && (
+          <TurkeyMapView
+            entities={entities}
+            isEmbedMode={isEmbedMode}
+          />
+        )}
+
+        {!isEmbedMode && activeTab === 'news' && (
+          <NewsFeedView
+            onAddPendingEntity={handleAddPendingEntity}
+            pendingEntityIds={pendingEntities.map(p => p.id)}
           />
         )}
 
@@ -314,26 +575,39 @@ export default function App() {
             onTriggerScrape={handleTriggerScrape}
             isScraping={isScraping}
             onAddEntity={handleAddEntity}
+            onAddPendingEntity={handleAddPendingEntity}
           />
         )}
 
         {!isEmbedMode && activeTab === 'admin' && (
           <AdminView
             entities={entities}
+            pendingEntities={pendingEntities}
+            issueReports={issueReports}
+            githubConfig={githubConfig}
+            onSaveGithubConfig={setGithubConfig}
+            onPullFromGithub={handlePullFromGithub}
+            onPushToGithub={handlePushToGithub}
             onAddEntity={handleAddEntity}
             onUpdateEntity={handleUpdateEntity}
             onDeleteEntity={handleDeleteEntity}
+            onApprovePending={handleApprovePending}
+            onRejectPending={handleRejectPending}
+            onResolveIssue={handleResolveIssue}
+            onDismissIssue={handleDismissIssue}
             onResetDefault={handleResetDefault}
             onSyncWithRepo={handleSyncWithRepo}
+            onSyncWithGithubUrl={handleSyncWithGithubUrl}
+            onCleanDuplicates={handleCleanDuplicates}
           />
         )}
       </main>
 
-      {/* Public Submission Modal (Step 1 Strategy: Community Growth) */}
+      {/* Public Submission Modal (Community Submissions go to Moderation Queue) */}
       <PublicSubmissionModal
         isOpen={isPublicSubmissionOpen}
         onClose={() => setIsPublicSubmissionOpen(false)}
-        onSubmit={handleAddEntity}
+        onSubmit={handleAddPendingEntity}
       />
 
       {/* Footer (Hidden in Embed Mode) */}

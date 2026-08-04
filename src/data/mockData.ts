@@ -523,19 +523,117 @@ export const INITIAL_ENTITIES: EcosystemEntity[] = [
     investmentFocus: ['Pre-seed', 'Seed', 'DeepTech'],
     portfolioCount: 55,
     lastUpdated: '2026-07-31 11:50'
+  },
+  {
+    id: '36',
+    name: 'ODTÜ TEKNOKENT & Telekom Garaj',
+    titleOrCompany: 'ODTÜ Teknoloji Geliştirme Bölgesi & YFYİ',
+    type: 'Hızlandırıcı & Kuluçka',
+    category: 'Savunma & Uzay',
+    city: 'Ankara',
+    description: 'Türkiye\'nin ilk ve en büyük teknoparklarından biri. Savunma sanayii, AI, oyun ve siber güvenlik odaklı 400+ teknoloji şirketine ve YFYİ kuluçka programına ev sahipliği yapar.',
+    website: 'https://odtuteknokent.com.tr',
+    foundedYear: 2001,
+    teamSize: '400+ Şirket',
+    lastUpdated: '2026-08-01 10:00',
+    featured: true
+  },
+  {
+    id: '37',
+    name: 'Yıldız Teknopark & Yıldız Kuluçka',
+    titleOrCompany: 'Yıldız Teknik Üniversitesi TGB',
+    type: 'Hızlandırıcı & Kuluçka',
+    category: 'SaaS & Yazılım',
+    city: 'İstanbul',
+    description: '450+ teknoloji firması ve uluslararası Yıldız Kuluçka Center ile Türkiye\'nin en yüksek Ar-Ge kapasiteli Teknoloji Geliştirme Bölgelerinden biri.',
+    website: 'https://yildizteknopark.com.tr',
+    foundedYear: 2003,
+    teamSize: '450+ Şirket',
+    lastUpdated: '2026-08-01 10:00',
+    featured: true
+  },
+  {
+    id: '38',
+    name: 'Bilişim Vadisi (Türkiye Teknoloji Geliştirme Bölgesi)',
+    titleOrCompany: 'Milli Teknoloji Hamlesi Merkez Kampüsü',
+    type: 'Hızlandırıcı & Kuluçka',
+    category: 'Donanım & IoT',
+    city: 'Kocaeli',
+    description: 'Otomotiv, mobilite, oyun ve yapay zeka alanında 500+ AR-GE firmasını barındıran Kuluçka İşletme Merkezi (KİM) ile Türkiye\'nin dev kümelenmesi.',
+    website: 'https://bilisimvadisi.com.tr',
+    foundedYear: 2015,
+    teamSize: '500+ Şirket',
+    lastUpdated: '2026-08-02 09:00',
+    featured: true
+  },
+  {
+    id: '39',
+    name: 'Bilkent CYBERPARK',
+    titleOrCompany: 'Bilkent Üniversitesi TGB & CYBERPARK Kuluçka',
+    type: 'Hızlandırıcı & Kuluçka',
+    category: 'Siber Güvenlik',
+    city: 'Ankara',
+    description: 'Bilişim, telekom ve siber güvenlik kümelenmesinde öncü, 240+ teknoloji firmasına ve CYBERPARK kuluçka merkezine ev sahipliği yapan akredite TGB.',
+    website: 'https://cyberpark.com.tr',
+    foundedYear: 2002,
+    teamSize: '240+ Şirket',
+    lastUpdated: '2026-08-01 11:00'
+  },
+  {
+    id: '40',
+    name: 'Ege Teknopark & DEÜ DEPARK',
+    titleOrCompany: 'İzmir Üniversiteleri TGB Kümelenmesi',
+    type: 'Hızlandırıcı & Kuluçka',
+    category: 'Sağlık & Biyo',
+    city: 'İzmir',
+    description: 'Biyosağlık, tarım teknolojileri ve yazılım odaklı Ege bölgesinin öncü teknoloji geliştirme ve nuKA kuluçka merkezi.',
+    website: 'https://egeteknopark.com.tr',
+    foundedYear: 2014,
+    teamSize: '150+ Şirket',
+    lastUpdated: '2026-07-30 14:00'
+  },
+  {
+    id: '41',
+    name: 'Hacettepe Teknokent & Kuluçka',
+    titleOrCompany: 'Sağlık & Medikal Teknolojileri TGB',
+    type: 'Hızlandırıcı & Kuluçka',
+    category: 'Sağlık & Biyo',
+    city: 'Ankara',
+    description: 'Sağlık, medikal teknolojiler, ilaç ve yazılım alanlarında uzmanlaşmış 250+ Ar-Ge firmasına ev sahipliği yapan Ankara merkezli TGB.',
+    website: 'https://hacettepeteknokent.com.tr',
+    foundedYear: 2003,
+    teamSize: '250+ Şirket',
+    lastUpdated: '2026-07-29 15:00'
+  },
+  {
+    id: '42',
+    name: 'İzmir Yüksek Teknoloji Enstitüsü Atmosfer Teknopark',
+    titleOrCompany: 'Derin Teknoloji TGB & Kuluçka',
+    type: 'Hızlandırıcı & Kuluçka',
+    category: 'Derin Teknoloji',
+    city: 'İzmir',
+    description: 'Sentetik biyoloji, malzeme bilimi ve yenilenebilir enerji odaklı Ege bölgesinin akademiden sanayiye derin teknoloji üssü.',
+    website: 'https://atmosferteknopark.org',
+    foundedYear: 2010,
+    teamSize: '100+ Şirket',
+    lastUpdated: '2026-07-28 16:00'
+  },
+  {
+    id: '43',
+    name: 'Gazi Teknopark & Kuluçka',
+    titleOrCompany: 'Gazi Üniversitesi TGB',
+    type: 'Hızlandırıcı & Kuluçka',
+    category: 'Savunma & Uzay',
+    city: 'Ankara',
+    description: 'Enerji, siber güvenlik, savunma sanayii ve sağlık yazılımlarında uzmanlaşmış 180+ Ar-Ge firmasına ev sahipliği yapan akredite TGB.',
+    website: 'https://gaziteknopark.com.tr',
+    foundedYear: 2007,
+    teamSize: '180+ Şirket',
+    lastUpdated: '2026-07-27 12:00'
   }
 ];
 
 export const INITIAL_SCRAPER_LOGS: ScraperLog[] = [
-  {
-    id: 'log-1785843361157',
-    timestamp: '2026-08-04 11:36',
-    source: 'GitHub Action Bot (Otomatik)',
-    status: 'Başarılı',
-    itemsFetched: 3,
-    durationMs: 380,
-    memoryUsageMb: 42
-  },
   {
     id: 'log-1785684385756',
     timestamp: '2026-08-02 15:26',

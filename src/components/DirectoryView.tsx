@@ -1,22 +1,85 @@
-import React, { useState, useMemo } from 'react';
-import { EcosystemEntity, EntityType, CategoryType, StageType } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { EcosystemEntity, EntityType, CategoryType, StageType, IssueReport } from '../types';
 import { EntityAvatar } from './EntityAvatar';
-import { Search, Filter, Globe, Linkedin, Twitter, ExternalLink, Calendar, MapPin, Building2, Sparkles, User, Briefcase, ChevronRight, X, ArrowUpDown, PlusCircle } from 'lucide-react';
+import { Search, Filter, Globe, Linkedin, Twitter, ExternalLink, Calendar, MapPin, Building2, Sparkles, User, Briefcase, ChevronRight, X, ArrowUpDown, PlusCircle, Link, Copy, Check, AlertTriangle, Edit } from 'lucide-react';
 
 interface DirectoryViewProps {
   entities: EcosystemEntity[];
   onSelectEntity?: (entity: EcosystemEntity) => void;
   isEmbedMode?: boolean;
   onOpenPublicSubmissionModal?: () => void;
+  onSubmitIssueReport?: (report: Omit<IssueReport, 'id' | 'createdAt' | 'status'>) => void;
 }
 
-export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedMode = false, onOpenPublicSubmissionModal }) => {
+export const DirectoryView: React.FC<DirectoryViewProps> = ({
+  entities,
+  isEmbedMode = false,
+  onOpenPublicSubmissionModal,
+  onSubmitIssueReport
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<EntityType | 'Tümü'>('Tümü');
   const [selectedCategory, setSelectedCategory] = useState<CategoryType | 'Tümü'>('Tümü');
   const [selectedStage, setSelectedStage] = useState<StageType | 'Tümü'>('Tümü');
+  const [sortBy, setSortBy] = useState<'featured' | 'newest' | 'name'>('featured');
   const [activeEntityModal, setActiveEntityModal] = useState<EcosystemEntity | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  
+  // Link copied state
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
+
+  // Issue reporting modal state
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportType, setReportType] = useState<IssueReport['reportType']>('Hatalı Bilgi');
+  const [reportDescription, setReportDescription] = useState('');
+  const [reporterEmail, setReporterEmail] = useState('');
+  const [reportSuccess, setReportSuccess] = useState(false);
+
+  // Check URL query parameters for deep linking on load
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const profileId = params.get('profile') || params.get('entity') || params.get('id');
+      if (profileId) {
+        const found = entities.find(e => e.id === profileId || e.name.toLowerCase() === profileId.toLowerCase());
+        if (found) {
+          setActiveEntityModal(found);
+        }
+      }
+    }
+  }, [entities]);
+
+  const handleCopyProfileLink = (entity: EcosystemEntity) => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('profile', entity.id);
+    navigator.clipboard.writeText(url.toString());
+    setIsLinkCopied(true);
+    setTimeout(() => setIsLinkCopied(false), 2000);
+  };
+
+  const handleSendIssueReport = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeEntityModal || !reportDescription.trim()) return;
+
+    if (onSubmitIssueReport) {
+      onSubmitIssueReport({
+        entityId: activeEntityModal.id,
+        entityName: activeEntityModal.name,
+        reportType,
+        description: reportDescription.trim(),
+        reporterEmail: reporterEmail.trim() || undefined
+      });
+    }
+
+    setReportSuccess(true);
+    setTimeout(() => {
+      setReportSuccess(false);
+      setIsReportModalOpen(false);
+      setReportDescription('');
+      setReporterEmail('');
+    }, 1800);
+  };
 
   const categories: (CategoryType | 'Tümü')[] = [
     'Tümü',
@@ -49,12 +112,25 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
   ];
 
   const filteredEntities = useMemo(() => {
-    return entities.filter(item => {
+    const q = searchTerm.trim().toLocaleLowerCase('tr-TR');
+    const filtered = entities.filter(item => {
+      const name = (item.name || '').toLocaleLowerCase('tr-TR');
+      const title = (item.titleOrCompany || '').toLocaleLowerCase('tr-TR');
+      const desc = (item.description || '').toLocaleLowerCase('tr-TR');
+      const city = (item.city || '').toLocaleLowerCase('tr-TR');
+      const cat = (item.category || '').toLocaleLowerCase('tr-TR');
+      const type = (item.type || '').toLocaleLowerCase('tr-TR');
+      const notes = (item.notes || '').toLocaleLowerCase('tr-TR');
+
       const matchesSearch =
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.titleOrCompany.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.city.toLowerCase().includes(searchTerm.toLowerCase());
+        !q ||
+        name.includes(q) ||
+        title.includes(q) ||
+        desc.includes(q) ||
+        city.includes(q) ||
+        cat.includes(q) ||
+        type.includes(q) ||
+        notes.includes(q);
 
       const matchesType = selectedType === 'Tümü' || item.type === selectedType;
       const matchesCategory = selectedCategory === 'Tümü' || item.category === selectedCategory;
@@ -62,7 +138,23 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
 
       return matchesSearch && matchesType && matchesCategory && matchesStage;
     });
-  }, [entities, searchTerm, selectedType, selectedCategory, selectedStage]);
+
+    return filtered.sort((a, b) => {
+      if (sortBy === 'featured') {
+        const featA = a.featured ? 1 : 0;
+        const featB = b.featured ? 1 : 0;
+        if (featA !== featB) return featB - featA; // Featured first
+        return (b.lastUpdated || '').localeCompare(a.lastUpdated || '');
+      }
+      if (sortBy === 'newest') {
+        return (b.lastUpdated || '').localeCompare(a.lastUpdated || '');
+      }
+      if (sortBy === 'name') {
+        return a.name.localeCompare(b.name, 'tr-TR');
+      }
+      return 0;
+    });
+  }, [entities, searchTerm, selectedType, selectedCategory, selectedStage, sortBy]);
 
   return (
     <div className="space-y-6">
@@ -103,6 +195,21 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
             <span className="font-medium text-slate-700">
               <strong className="text-emerald-600 font-bold">{filteredEntities.length}</strong> sonuç gösteriliyor
             </span>
+
+            {/* Sort Selector */}
+            <div className="flex items-center space-x-1.5 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as any)}
+                className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer py-0.5"
+              >
+                <option value="featured">🌟 Öne Çıkanlar Önce</option>
+                <option value="newest">🕒 En Yeniler</option>
+                <option value="name">🔤 Alfabetik (A-Z)</option>
+              </select>
+            </div>
+
             <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
               <button
                 onClick={() => setViewMode('grid')}
@@ -371,38 +478,169 @@ export const DirectoryView: React.FC<DirectoryViewProps> = ({ entities, isEmbedM
                 )}
               </div>
 
-              {/* Social Links */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  {activeEntityModal.website && (
-                    <a
-                      href={activeEntityModal.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center space-x-1"
+              {/* Social Links & Deep Link / Report Issue */}
+              <div className="pt-4 border-t border-slate-100 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2">
+                    {activeEntityModal.website && (
+                      <a
+                        href={activeEntityModal.website.startsWith('http') ? activeEntityModal.website : `https://${activeEntityModal.website}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center space-x-1 transition-colors"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        <span>Web Sitesi</span>
+                      </a>
+                    )}
+                    {activeEntityModal.linkedin && (
+                      <a
+                        href={activeEntityModal.linkedin.startsWith('http') ? activeEntityModal.linkedin : `https://${activeEntityModal.linkedin}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium flex items-center space-x-1 transition-colors"
+                      >
+                        <Linkedin className="w-3.5 h-3.5" />
+                        <span>LinkedIn</span>
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleCopyProfileLink(activeEntityModal)}
+                      className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center space-x-1 transition-colors"
+                      title="Doğrudan Paylaşılabilir Profil Bağlantısını Kopyala"
                     >
-                      <Globe className="w-3.5 h-3.5" />
-                      <span>Web Sitesi</span>
-                    </a>
-                  )}
-                  {activeEntityModal.linkedin && (
-                    <a
-                      href={activeEntityModal.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium flex items-center space-x-1"
+                      {isLinkCopied ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-700 font-bold">Link Kopyalandı!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Link className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Profil Linki</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => setIsReportModalOpen(true)}
+                      className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-xs font-medium flex items-center space-x-1 border border-amber-200/60 transition-colors"
+                      title="Bilgi Güncelleme / Hata Bildir"
                     >
-                      <Linkedin className="w-3.5 h-3.5" />
-                      <span>LinkedIn</span>
-                    </a>
-                  )}
+                      <Edit className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Bilgi Güncelle / Bildir</span>
+                    </button>
+                  </div>
                 </div>
 
-                <span className="text-[10px] text-slate-400">
-                  Son Otomatik Güncelleme: {activeEntityModal.lastUpdated}
-                </span>
+                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                  <span>ID: {activeEntityModal.id}</span>
+                  <span>Son Güncelleme: {activeEntityModal.lastUpdated}</span>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Issue / Suggest Update Modal */}
+      {isReportModalOpen && activeEntityModal && (
+        <div 
+          onClick={() => setIsReportModalOpen(false)}
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative my-auto max-h-[90vh] overflow-y-auto space-y-4"
+          >
+            <button
+              onClick={() => setIsReportModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {reportSuccess ? (
+              <div className="py-8 text-center space-y-3">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                  <Check className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Bildiriminiz Alındı!</h3>
+                <p className="text-xs text-slate-600">
+                  Teşekkürler, bilgi güncelleme talebiniz moderasyon ekibimize iletildi.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSendIssueReport} className="space-y-4 text-xs">
+                <div className="space-y-1">
+                  <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                    Bilgi Güncelleme / Hata Bildir
+                  </span>
+                  <h3 className="text-lg font-extrabold text-slate-900">
+                    "{activeEntityModal.name}" İçin Düzeltme Bildir
+                  </h3>
+                  <p className="text-slate-500">
+                    Eksik veya hatalı bir bilgi tespit ettiyseniz doğru bilgiyi yönetime bildirin.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Bildirim Türü *</label>
+                  <select
+                    value={reportType}
+                    onChange={e => setReportType(e.target.value as any)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 outline-none"
+                  >
+                    <option value="Hatalı Bilgi">Hatalı Bilgi (İsim, Şehir, Unvan vb.)</option>
+                    <option value="Güncelleme İsteği">Yeni Bilgi / Yatırım Güncellemesi</option>
+                    <option value="Kapanmış/Aktif Değil">Girişim/Kurum Artık Aktif Değil</option>
+                    <option value="Diğer">Diğer Bildirim</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Açıklama / Doğru Bilgi *</label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={reportDescription}
+                    onChange={e => setReportDescription(e.target.value)}
+                    placeholder="Lütfen doğru veya güncel bilgileri kısaca açıklayın..."
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 outline-none resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">E-Posta Adresiniz (Opsiyonel)</label>
+                  <input
+                    type="email"
+                    value={reporterEmail}
+                    onChange={e => setReporterEmail(e.target.value)}
+                    placeholder="E-posta adresiniz..."
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 outline-none"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end space-x-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsReportModalOpen(false)}
+                    className="px-3.5 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
+                  >
+                    İptal
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-xl shadow-sm transition-all"
+                  >
+                    Bildirimi Gönder
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
