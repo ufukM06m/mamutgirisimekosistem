@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { JSDOM } from 'jsdom';
@@ -9,6 +10,28 @@ import { deduplicateAndNormalizeEntities } from './src/utils/categoryHelper';
 
 export const app = express();
 app.use(express.json({ limit: '10mb' }));
+
+function saveEntitiesToDisk(entities: any[]) {
+  if (!Array.isArray(entities) || entities.length === 0) return;
+  const jsonContent = JSON.stringify(entities, null, 2);
+  const targetFiles = [
+    path.join(process.cwd(), 'entities.json'),
+    path.join(process.cwd(), 'ecosystem.json'),
+    path.join(process.cwd(), 'src', 'data', 'entities.json'),
+    path.join(process.cwd(), 'public', 'entities.json')
+  ];
+  for (const filePath of targetFiles) {
+    try {
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(filePath, jsonContent, 'utf-8');
+    } catch (e) {
+      console.warn(`[Local Storage] Could not write to ${filePath}:`, e);
+    }
+  }
+}
 
 async function startServer() {
   const PORT = 3000;
@@ -764,12 +787,58 @@ Format:
     }
   });
 
+  // Local Entities Persistence endpoints
+  app.get('/api/entities', (req, res) => {
+    try {
+      const candidateFiles = [
+        path.join(process.cwd(), 'entities.json'),
+        path.join(process.cwd(), 'ecosystem.json'),
+        path.join(process.cwd(), 'src', 'data', 'entities.json'),
+        path.join(process.cwd(), 'public', 'entities.json')
+      ];
+      for (const filePath of candidateFiles) {
+        if (fs.existsSync(filePath)) {
+          const raw = fs.readFileSync(filePath, 'utf-8');
+          try {
+            const data = JSON.parse(raw);
+            if (Array.isArray(data) && data.length > 0) {
+              return res.json({ success: true, count: data.length, data });
+            }
+          } catch (e) {
+            console.warn(`[Local API] Failed to parse ${filePath}`);
+          }
+        }
+      }
+      return res.json({ success: true, count: INITIAL_ENTITIES.length, data: INITIAL_ENTITIES });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/entities', (req, res) => {
+    try {
+      const { entities } = req.body;
+      if (!Array.isArray(entities)) {
+        return res.status(400).json({ success: false, error: 'entities bir dizi olmalıdır.' });
+      }
+      saveEntitiesToDisk(entities);
+      return res.json({ success: true, count: entities.length });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // Server-side GitHub Commit Proxy endpoint
   app.post('/api/github/commit', async (req, res) => {
     try {
       const { owner, repo, filePath, branch, token, entities, commitMessage } = req.body;
       if (!owner || !repo || !token) {
         return res.status(400).json({ success: false, error: 'owner, repo ve token parametreleri zorunludur.' });
+      }
+
+      // Automatically sync local disk as well when committing to GitHub
+      if (Array.isArray(entities) && entities.length > 0) {
+        saveEntitiesToDisk(entities);
       }
 
       const primaryPath = filePath ? (filePath.startsWith('/') ? filePath.substring(1) : filePath) : 'entities.json';

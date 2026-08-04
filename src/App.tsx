@@ -132,7 +132,27 @@ export default function App() {
     }
   }, [githubConfig]);
 
-  // Sync entities to localStorage
+  // Initial load from server disk (/api/entities)
+  React.useEffect(() => {
+    fetch('/api/entities')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          setEntities(prev => {
+            // Keep whichever has more items or prefer server if larger
+            if (data.data.length >= prev.length) {
+              return deduplicateAndNormalizeEntities(data.data);
+            }
+            return prev;
+          });
+        }
+      })
+      .catch(err => {
+        console.warn('Could not fetch initial entities from /api/entities:', err);
+      });
+  }, []);
+
+  // Sync entities to localStorage & server disk
   React.useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -140,6 +160,16 @@ export default function App() {
       }
     } catch (e) {
       console.error('Failed to save entities to localStorage:', e);
+    }
+
+    if (entities.length > 0) {
+      fetch('/api/entities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entities })
+      }).catch(err => {
+        console.warn('Could not sync entities to /api/entities:', err);
+      });
     }
   }, [entities]);
 
