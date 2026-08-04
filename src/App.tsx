@@ -520,6 +520,8 @@ export default function App() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           entityCount={entities.length}
+          pendingCount={pendingEntities.length}
+          issueCount={issueReports.length}
           isEmbedMode={isEmbedMode}
           onToggleEmbedMode={() => setIsTestEmbedMode(true)}
           onOpenPublicSubmissionModal={() => setIsPublicSubmissionOpen(true)}
@@ -614,8 +616,15 @@ export default function App() {
       {!isEmbedMode && (
         <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <span className="font-bold text-slate-800">mamuthub.com Girişimcilik & Yatırımcı Portalı</span>
+              <span>•</span>
+              <button
+                onClick={() => setActiveTab('admin')}
+                className="text-indigo-600 hover:text-indigo-800 font-extrabold flex items-center space-x-1 underline transition-colors"
+              >
+                <span>🔒 Yönetici Paneli (Admin)</span>
+              </button>
             </div>
             <p>© 2026 - Türkiye Teknoloji Ekosistem Veritabanı</p>
           </div>
