@@ -1,6 +1,9 @@
 import { EcosystemEntity, ScraperLog } from '../types';
+import entitiesJson from './entities.json';
 
-export const INITIAL_ENTITIES: EcosystemEntity[] = [
+const rawJsonEntities = (entitiesJson as EcosystemEntity[]) || [];
+
+export const INITIAL_ENTITIES: EcosystemEntity[] = rawJsonEntities.length > 0 ? rawJsonEntities : [
   {
     id: '1',
     name: 'Hande Çilingir',

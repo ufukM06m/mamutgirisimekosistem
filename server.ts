@@ -821,6 +821,29 @@ Format:
       if (!Array.isArray(entities)) {
         return res.status(400).json({ success: false, error: 'entities bir dizi olmalıdır.' });
       }
+      let currentDiskCount = 0;
+      const candidateFiles = [
+        path.join(process.cwd(), 'entities.json'),
+        path.join(process.cwd(), 'ecosystem.json'),
+        path.join(process.cwd(), 'src', 'data', 'entities.json'),
+        path.join(process.cwd(), 'public', 'entities.json')
+      ];
+      for (const f of candidateFiles) {
+        if (fs.existsSync(f)) {
+          try {
+            const diskData = JSON.parse(fs.readFileSync(f, 'utf-8'));
+            if (Array.isArray(diskData) && diskData.length > currentDiskCount) {
+              currentDiskCount = diskData.length;
+            }
+          } catch (e) {}
+        }
+      }
+
+      if (currentDiskCount > 0 && entities.length < currentDiskCount && entities.length <= 43) {
+        console.warn(`[Local API] Ignored POST /api/entities with ${entities.length} items because disk already has ${currentDiskCount} items.`);
+        return res.json({ success: true, count: currentDiskCount, note: 'Disk has more items, request ignored' });
+      }
+
       saveEntitiesToDisk(entities);
       return res.json({ success: true, count: entities.length });
     } catch (err: any) {

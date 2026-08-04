@@ -19,7 +19,9 @@ export default function App() {
         const saved = localStorage.getItem('mamuthub_entities');
         if (saved) {
           const parsed = JSON.parse(saved);
-          return deduplicateAndNormalizeEntities(parsed);
+          if (Array.isArray(parsed) && parsed.length >= INITIAL_ENTITIES.length) {
+            return deduplicateAndNormalizeEntities(parsed);
+          }
         }
       }
     } catch (e) {
