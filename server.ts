@@ -695,7 +695,7 @@ ${notes ? `Kullanıcı Özel Notu / Bağlam: ${notes}` : ''}
 ]
 `;
 
-          const modelsToTry = ['gemini-3.6-flash', 'gemini-flash-latest'];
+          const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
           for (const modelName of modelsToTry) {
             try {
               console.log(`Sending chunk ${chunkIdx + 1} to Gemini model: ${modelName}...`);
