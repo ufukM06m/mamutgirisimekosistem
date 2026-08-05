@@ -234,6 +234,31 @@ const getAi = () => {
         }
       }
 
+      // 5. Broad text block & line parser for pasted notes / text
+      const blocks = (html || '').split(/\n+/).map(b => b.trim()).filter(b => b.length > 5);
+      for (const block of blocks) {
+        if (block.startsWith('[') && block.endsWith(']')) continue;
+        if (block.length < 5 || block.length > 500) continue;
+
+        const parts = block.split(/[:\-\—\•\|]/);
+        if (parts.length >= 2) {
+          const name = parts[0].replace(/^(?:\d+[\.\)]|\*|\•)?\s*/, '').trim();
+          const desc = parts.slice(1).join(' ').trim();
+          if (
+            name.length >= 2 && name.length <= 60 &&
+            !['ana sayfa', 'iletişim', 'hakkımızda', 'firmalar', 'kategoriler', 'giriş', 'arama', 'menü', 'tüm hakları saklıdır', 'gizlilik politikası'].includes(name.toLowerCase())
+          ) {
+            rawItems.push({
+              name,
+              titleOrCompany: desc.substring(0, 70),
+              type: /fon|yatırım|vc/i.test(block) ? 'Yatırımcı / VC' : (/etkinlik|haber|zirve/i.test(block) ? 'Etkinlik / Haber' : 'Startup'),
+              description: desc.length > 10 ? desc : `${name} - Ekosistem kaydı.`,
+              website: sourceUrl || ''
+            });
+          }
+        }
+      }
+
     } catch (domErr: any) {
       console.warn('DOM parser error:', domErr?.message);
     }
@@ -255,26 +280,80 @@ const getAi = () => {
     return chunks;
   }
 
-  // Helper function: Fetch & clean single page content + extract pagination links & embedded JS / JSON-LD / SPA state & JSDOM Virtual Rendering
+  // Helper function: Fetch & clean single page content + extract pagination links & proxy fallbacks for Cloudflare / JS rendering
   async function fetchPageContent(targetUrl: string, useHeadless: boolean = false): Promise<{ text: string; paginationUrls: string[] }> {
     try {
-      const fetchedRes = await fetch(targetUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Cache-Control': 'no-cache',
-          'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124"',
-          'Sec-Ch-Ua-Mobile': '?0',
-          'Sec-Ch-Ua-Platform': '"Windows"'
-        }
-      });
+      let html = '';
+      let isBlockedOrEmpty = false;
 
-      if (!fetchedRes.ok) {
-        return { text: `[Sayfa Alınamadı: ${targetUrl} (HTTP ${fetchedRes.status})]`, paginationUrls: [] };
+      try {
+        const fetchedRes = await fetch(targetUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cache-Control': 'no-cache',
+            'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"Windows"'
+          }
+        });
+
+        if (fetchedRes.ok) {
+          html = await fetchedRes.text();
+          if (
+            html.includes('Just a moment...') ||
+            html.includes('Cloudflare') ||
+            html.includes('cf-browser-verification') ||
+            html.includes('enable JavaScript') ||
+            html.trim().length < 300
+          ) {
+            isBlockedOrEmpty = true;
+          }
+        } else {
+          isBlockedOrEmpty = true;
+        }
+      } catch (directErr) {
+        isBlockedOrEmpty = true;
       }
 
-      const html = await fetchedRes.text();
+      // If direct fetch is blocked by Cloudflare / Security Firewall / JS Rendering, use Jina AI markdown reader proxy
+      if (isBlockedOrEmpty) {
+        console.log(`Direct fetch blocked or failed for ${targetUrl}, trying Jina AI reader proxy fallback...`);
+        try {
+          const jinaRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0 Safari/537.36',
+              'Accept': 'text/plain, text/html'
+            }
+          });
+          if (jinaRes.ok) {
+            const jinaText = await jinaRes.text();
+            if (jinaText && jinaText.length > 150 && !jinaText.includes('Just a moment...')) {
+              console.log(`Successfully retrieved ${jinaText.length} characters via Jina AI markdown reader for ${targetUrl}!`);
+              return {
+                text: `--- SAYFA İÇERİĞİ (Jina AI Reader: ${targetUrl}) ---\n${jinaText}`,
+                paginationUrls: []
+              };
+            }
+          }
+        } catch (jinaErr: any) {
+          console.warn('Jina AI proxy fallback failed:', jinaErr?.message);
+        }
+
+        console.log(`Trying AllOrigins proxy fallback for ${targetUrl}...`);
+        try {
+          const corsRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`);
+          if (corsRes.ok) {
+            const corsHtml = await corsRes.text();
+            if (corsHtml && corsHtml.length > 200) {
+              html = corsHtml;
+              isBlockedOrEmpty = false;
+            }
+          }
+        } catch (corsErr) {}
+      }
+
       const paginationUrls: string[] = [];
 
       // 1. SPA / JS State / JSON-LD / Meta Tag Extractions
