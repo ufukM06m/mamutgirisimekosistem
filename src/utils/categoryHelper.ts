@@ -20,69 +20,84 @@ export const VALID_CATEGORIES: CategoryType[] = [
   'Donanım & IoT'
 ];
 
-export function normalizeCategory(rawCategory: string | undefined | null): CategoryType {
-  if (!rawCategory || typeof rawCategory !== 'string') return 'SaaS & Yazılım';
-
-  const clean = rawCategory.trim();
+export function normalizeCategory(rawCategory: string | undefined | null, name: string = '', desc: string = ''): CategoryType {
+  const clean = (rawCategory || '').trim();
   if (VALID_CATEGORIES.includes(clean as CategoryType)) {
     return clean as CategoryType;
   }
 
-  const lower = clean.toLowerCase();
+  const searchText = `${clean} ${name} ${desc}`.toLowerCase();
 
-  if (lower.includes('3d') || lower.includes('donanim') || lower.includes('hardware') || lower.includes('iot')) {
-    return 'Donanım & IoT';
-  }
-  if (lower.includes('ai') || lower.includes('yapay') || lower.includes('veri') || lower.includes('data') || lower.includes('makine')) {
+  if (searchText.includes('ai') || searchText.includes('yapay') || searchText.includes('veri') || searchText.includes('data') || searchText.includes('makine') || searchText.includes('nlp') || searchText.includes('otonom')) {
     return 'AI & Veri';
   }
-  if (lower.includes('saas') || lower.includes('yazilim') || lower.includes('software') || lower.includes('bulut') || lower.includes('cloud')) {
-    return 'SaaS & Yazılım';
-  }
-  if (lower.includes('fin') || lower.includes('odeme') || lower.includes('bank') || lower.includes('kripto') || lower.includes('crypto')) {
-    return 'FinTech';
-  }
-  if (lower.includes('ticaret') || lower.includes('e-commerce') || lower.includes('pazar') || lower.includes('lojistik') || lower.includes('kargo')) {
-    return 'E-Ticaret & Lojistik';
-  }
-  if (lower.includes('oyun') || lower.includes('game') || lower.includes('eglence') || lower.includes('medya')) {
-    return 'Oyun & Eğlence';
-  }
-  if (lower.includes('saglik') || lower.includes('biyo') || lower.includes('health') || lower.includes('med') || lower.includes('biyotek')) {
+  if (searchText.includes('saglik') || searchText.includes('sağlık') || searchText.includes('biyo') || searchText.includes('health') || searchText.includes('med') || searchText.includes('biyotek') || searchText.includes('tıp')) {
     return 'Sağlık & Biyo';
   }
-  if (lower.includes('derin') || lower.includes('deep') || lower.includes('nano') || lower.includes('robot')) {
-    return 'Derin Teknoloji';
+  if (searchText.includes('fin') || searchText.includes('odeme') || searchText.includes('ödeme') || searchText.includes('bank') || searchText.includes('kripto') || searchText.includes('crypto') || searchText.includes('pos')) {
+    return 'FinTech';
   }
-  if (lower.includes('egitim') || lower.includes('edtech') || lower.includes('okul') || lower.includes('kurs')) {
-    return 'Eğitim (EdTech)';
+  if (searchText.includes('oyun') || searchText.includes('game') || searchText.includes('eglence') || searchText.includes('eğlence') || searchText.includes('medya') || searchText.includes('streaming')) {
+    return 'Oyun & Eğlence';
   }
-  if (lower.includes('iklim') || lower.includes('yesil') || lower.includes('enerji') || lower.includes('green') || lower.includes('cevre') || lower.includes('sürdür')) {
+  if (searchText.includes('ticaret') || searchText.includes('e-commerce') || searchText.includes('pazar') || searchText.includes('lojistik') || searchText.includes('kargo') || searchText.includes('tedarik')) {
+    return 'E-Ticaret & Lojistik';
+  }
+  if (searchText.includes('iklim') || searchText.includes('yesil') || searchText.includes('yeşil') || searchText.includes('enerji') || searchText.includes('green') || searchText.includes('cevre') || searchText.includes('çevre') || searchText.includes('sürdür') || searchText.includes('karbon')) {
     return 'İklim & Yeşil Teknoloji';
   }
-  if (lower.includes('siber') || lower.includes('guvenlik') || lower.includes('cyber') || lower.includes('security')) {
+  if (searchText.includes('siber') || searchText.includes('guvenlik') || searchText.includes('güvenlik') || searchText.includes('cyber') || searchText.includes('security') || searchText.includes('zafiyet')) {
     return 'Siber Güvenlik';
   }
-  if (lower.includes('gayrimenkul') || lower.includes('emlak') || lower.includes('proptech') || lower.includes('inşaat')) {
+  if (searchText.includes('egitim') || searchText.includes('eğitim') || searchText.includes('edtech') || searchText.includes('okul') || searchText.includes('kurs') || searchText.includes('öğrenci')) {
+    return 'Eğitim (EdTech)';
+  }
+  if (searchText.includes('3d') || searchText.includes('donanim') || searchText.includes('donanım') || searchText.includes('hardware') || searchText.includes('iot') || searchText.includes('sensör')) {
+    return 'Donanım & IoT';
+  }
+  if (searchText.includes('derin') || searchText.includes('deep') || searchText.includes('nano') || searchText.includes('robot') || searchText.includes('fotonik')) {
+    return 'Derin Teknoloji';
+  }
+  if (searchText.includes('gayrimenkul') || searchText.includes('emlak') || searchText.includes('proptech') || searchText.includes('inşaat') || searchText.includes('bina')) {
     return 'Gayrimenkul (PropTech)';
   }
-  if (lower.includes('ik') || lower.includes('hr') || lower.includes('insan') || lower.includes('kariyer')) {
+  if (searchText.includes('ik') || searchText.includes('hr') || searchText.includes('insan') || searchText.includes('kariyer') || searchText.includes('işe alım')) {
     return 'İnsan Kaynakları (HRTech)';
   }
-  if (lower.includes('pazarlama') || lower.includes('martech') || lower.includes('marketing') || lower.includes('reklam')) {
+  if (searchText.includes('pazarlama') || searchText.includes('martech') || searchText.includes('marketing') || searchText.includes('reklam') || searchText.includes('seo')) {
     return 'Pazarlama (MarTech)';
   }
-  if (lower.includes('tarim') || lower.includes('gida') || lower.includes('agri') || lower.includes('food') || lower.includes('besin')) {
+  if (searchText.includes('tarim') || searchText.includes('tarım') || searchText.includes('gida') || searchText.includes('gıda') || searchText.includes('agri') || searchText.includes('food')) {
     return 'Tarım & Gıda (AgriTech)';
   }
-  if (lower.includes('sigorta') || lower.includes('insurtech') || lower.includes('insurance')) {
+  if (searchText.includes('sigorta') || searchText.includes('insurtech') || searchText.includes('insurance')) {
     return 'Sigorta (InsurTech)';
   }
-  if (lower.includes('savunma') || lower.includes('uzay') || lower.includes('defense') || lower.includes('space') || lower.includes('havacilik')) {
+  if (searchText.includes('savunma') || searchText.includes('uzay') || searchText.includes('defense') || searchText.includes('space') || searchText.includes('iha') || searchText.includes('havacilik')) {
     return 'Savunma & Uzay';
+  }
+  if (searchText.includes('saas') || searchText.includes('yazilim') || searchText.includes('yazılım') || searchText.includes('software') || searchText.includes('bulut') || searchText.includes('cloud') || searchText.includes('platform')) {
+    return 'SaaS & Yazılım';
   }
 
   return 'SaaS & Yazılım';
+}
+
+export function inferCity(rawCity: string | undefined | null, fullText: string = ''): string {
+  if (rawCity && rawCity.trim() && rawCity.trim() !== 'Türkiye' && rawCity.trim().length >= 3) {
+    return rawCity.trim();
+  }
+
+  const lower = fullText.toLowerCase();
+  if (lower.includes('bursa')) return 'Bursa';
+  if (lower.includes('ankara') || lower.includes('odtu') || lower.includes('hacettepe') || lower.includes('bilkent')) return 'Ankara';
+  if (lower.includes('izmir') || lower.includes('ege') || lower.includes('dokuz eylül')) return 'İzmir';
+  if (lower.includes('kocaeli') || lower.includes('gebze') || lower.includes('gtu')) return 'Kocaeli';
+  if (lower.includes('antalya')) return 'Antalya';
+  if (lower.includes('mugla') || lower.includes('muğla')) return 'Muğla';
+  if (lower.includes('eskişehir') || lower.includes('eskisehir')) return 'Eskişehir';
+
+  return 'İstanbul';
 }
 
 export function deduplicateAndNormalizeEntities(entities: EcosystemEntity[]): EcosystemEntity[] {
@@ -98,8 +113,12 @@ export function deduplicateAndNormalizeEntities(entities: EcosystemEntity[]): Ec
 
     const normalizedNameKey = rawName.toLocaleLowerCase('tr-TR');
 
+    const cleanDesc = (entity.description || '').trim();
     // Normalize category to standard categories
-    const cleanCategory = normalizeCategory(entity.category);
+    const cleanCategory = normalizeCategory(entity.category, rawName, cleanDesc);
+
+    // Infer city
+    const cleanCity = inferCity(entity.city, `${rawName} ${cleanDesc} ${entity.website || ''}`);
 
     // Ensure unique ID
     const cleanId = entity.id && entity.id.trim()
@@ -113,8 +132,8 @@ export function deduplicateAndNormalizeEntities(entities: EcosystemEntity[]): Ec
       category: cleanCategory,
       titleOrCompany: (entity.titleOrCompany || '').trim() || cleanCategory,
       type: entity.type || 'Startup',
-      city: (entity.city || '').trim() || 'İstanbul',
-      description: (entity.description || '').trim() || `${rawName} girişimi.`,
+      city: cleanCity,
+      description: cleanDesc.length > 5 ? cleanDesc : `${rawName} - Teknoloji ve inovasyon alanında faaliyet gösteren girişim.`,
       status: entity.status || 'active'
     };
 

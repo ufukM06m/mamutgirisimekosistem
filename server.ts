@@ -496,64 +496,45 @@ const getAi = () => {
         // Helper to process a single chunk through Gemini AI
         const extractFromChunk = async (chunkText: string, chunkIdx: number) => {
           const prompt = `
-Aşağıdaki web adresi/sayfaları veya metin içeriğinden (Teknopark/Teknokent firmaları, Webrazzi haberleri, Etkinlik ve Zirve sayfaları, Hızlandırma/Kuluçka programı listeleri, Yatırımcı/VC portföyleri, TÜBİTAK/KOSGEB hibe çağrıları vb.) Türkiye girişimcilik ve teknoloji ekosisteminde yer alan TÜM VARLIKLARI (Girişim, Yatırımcı, Etkinlik/Haber, Hızlandırma Programı, Destek/Hibe, Kurumsal Ar-Ge) tespit et ve her birini ayrıştır. (Bölüm ${chunkIdx + 1} / ${chunks.length})
+Sen Türkiye teknoloji ve girişimcilik ekosistemi veri analistisin.
+Aşağıdaki metin/web sayfasından Türkiye ekosistemindeki TÜM VARLIKLARI (Girişimler, Yatırımcılar, Etkinlik/Haberler, Hızlandırıcılar/Kuluçkalar, Hibeler, Ar-Ge Merkezleri) çıkar ve kategorize et. (Bölüm ${chunkIdx + 1} / ${chunks.length})
 
-ÖNEMLİ KRİTİK KURAL 1: Metinde geçen TÜM KAYITLARI EKSİKSİZ VE TAM SIRA İLE ÇIKAR. Sayı ne kadar çok olursa olsun (20, 50, 80 veya 200+ kayıt), hiçbirini atlamadan tüm varlık adlarını ve detaylarını listele. Sadece birkaç taneyle yetinme!
-
-ÖNEMLİ KRİTİK KURAL 2 (TÜR / TYPE): 'type' alanı YALNIZCA AŞAĞIDAKİ TÜRLERDEN BİRİ OLACAKTIR:
-- 'Startup' (Teknoloji Şirketleri, Ar-Ge Firmaları, Girişimler)
-- 'Yatırımcı / VC' (Venture Capital Fonları, Melek Yatırım Ağları)
-- 'Etkinlik / Haber' (Sektörel Haberler, Zirveler, Yarışmalar, Hackathonlar)
-- 'Hızlandırma Programı' (Kuluçka Merkezleri, Akseleratörler)
-- 'Destek / Hibe' (TÜBİTAK, KOSGEB, Kamu Hibeleri)
-- 'Kurumsal Ar-Ge' (Büyük Kurumsal İnovasyon Merkezleri)
-
-ÖNEMLİ KRİTİK KURAL 3 (KATEGORİ): 'category' alanı YALNIZCA AŞAĞIDAKİ LİSTEDEN BİRİ OLMALIDIR:
-- 'AI & Veri'
-- 'SaaS & Yazılım'
-- 'FinTech'
-- 'E-Ticaret & Lojistik'
-- 'Oyun & Eğlence'
-- 'Sağlık & Biyo'
-- 'Derin Teknoloji'
-- 'Eğitim (EdTech)'
-- 'İklim & Yeşil Teknoloji'
-- 'Siber Güvenlik'
-- 'Gayrimenkul (PropTech)'
-- 'İnsan Kaynakları (HRTech)'
-- 'Pazarlama (MarTech)'
-- 'Tarım & Gıda (AgriTech)'
-- 'Sigorta (InsurTech)'
-- 'Savunma & Uzay'
-- 'Donanım & IoT'
-- 'Haber & Medya'
+ÇOK KRİTİK KURALLAR:
+1. Metindeki TÜM KAYITLARI eksiksiz çıkar. Sayı ne kadar çok olursa olsun hepsini listele!
+2. Her bir kayıt için aşağıdaki alanları EKSİKSİZ VE DETAYLI doldur:
+   - "name": Girişim / Kurum / Etkinlik Adı (örn. "Getir", "İTÜ Çekirdek", "Webrazzi Zirvesi")
+   - "titleOrCompany": Kısa Unvan / İnovasyon Odağı (örn. "Otonom Rota Optimizasyonu" veya "Melek Yatırım Ağı")
+   - "type": Yalnızca şunlardan biri -> 'Startup', 'Yatırımcı / VC', 'Etkinlik / Haber', 'Hızlandırıcı & Kuluçka', 'Destek / Hibe', 'Kurumsal Ar-Ge'
+   - "category": Yalnızca şunlardan biri -> 'AI & Veri', 'SaaS & Yazılım', 'FinTech', 'E-Ticaret & Lojistik', 'Oyun & Eğlence', 'Sağlık & Biyo', 'Derin Teknoloji', 'Eğitim (EdTech)', 'İklim & Yeşil Teknoloji', 'Siber Güvenlik', 'Gayrimenkul (PropTech)', 'İnsan Kaynakları (HRTech)', 'Pazarlama (MarTech)', 'Tarım & Gıda (AgriTech)', 'Sigorta (InsurTech)', 'Savunma & Uzay', 'Donanım & IoT', 'Haber & Medya'
+   - "city": Metinde geçen veya girişimin merkez şehri (örn. 'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Kocaeli', 'Antalya', 'Muğla'). Belirtilmemişse Türkiye içi en uygun merkezi yaz.
+   - "description": Metindeki bilgilere dayanarak girişimin/varlığın ne iş yaptığını anlatan en az 1-2 cümlelik açıklayıcı Türkçe metin. Boş bırakma!
+   - "website": Varsa resmi web adresi, yoksa boş string.
+   - "stage": 'Seed', 'Pre-seed', 'Series A', 'Series B', 'Scale-up' veya 'Fikir'
 
 Metin Bölümü İçeriği:
 ${chunkText}
 
-${notes ? `Kullanıcı Özel Notu: ${notes}` : ''}
+${notes ? `Kullanıcı Özel Notu / Bağlam: ${notes}` : ''}
 
-Lütfen metinde YALNIZCA GERÇEKTEN VAR OLAN TÜM VARLIKLARI ÇIKAR.
-ÇIKTI KURALI: SADECE geçerli bir JSON array formatı döndür.
-
-Array eleman formatı:
+ÇIKTI FORMATI: SADECE GEÇERLİ BİR JSON ARRAYİ DÖNDÜR (başka metin ekleme):
 [
   {
-    "name": "Şirket/Girişim/Etkinlik Adı",
-    "titleOrCompany": "Unvan veya Kısa Bilgi (örn. Otonom Rota Yazılımı veya 2026 Zirvesi)",
+    "name": "Girişim Adı",
+    "titleOrCompany": "Kısa İnovatif Unvan",
     "type": "Startup",
-    "category": "SaaS & Yazılım",
+    "category": "AI & Veri",
     "city": "İstanbul",
-    "description": "Sayfa içeriğinden çıkarılan 1-2 cümlelik gerçek Türkçe açıklama",
+    "description": "Metinde geçen ürün/hizmet ve teknoloji açıklaması.",
     "website": "https://...",
     "stage": "Seed"
   }
 ]
 `;
 
-          const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-3.6-flash'];
+          const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
           for (const modelName of modelsToTry) {
             try {
+              console.log(`Sending chunk ${chunkIdx + 1} to Gemini model: ${modelName}...`);
               const response = await ai.models.generateContent({
                 model: modelName,
                 contents: prompt,
@@ -568,10 +549,13 @@ Array eleman formatı:
                   .replace(/```/g, '')
                   .trim();
                 const parsed = JSON.parse(cleanJsonString);
-                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  console.log(`Gemini ${modelName} extracted ${parsed.length} items from chunk ${chunkIdx + 1}!`);
+                  return parsed;
+                }
               }
-            } catch (mErr) {
-              console.warn(`Chunk ${chunkIdx + 1} failed on ${modelName}:`, mErr);
+            } catch (mErr: any) {
+              console.warn(`Chunk ${chunkIdx + 1} failed on ${modelName}:`, mErr?.message || mErr);
             }
           }
           return [];
