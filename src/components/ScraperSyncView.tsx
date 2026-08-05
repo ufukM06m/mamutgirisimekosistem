@@ -229,69 +229,19 @@ export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
         }
       }
 
-      // 3. Fallback Client-Side Dynamic Entities Generator so extraction never fails empty
       if (discoveredItems.length === 0) {
-        const urlOrText = `${formattedUrl} ${customNotes}`.toLowerCase();
-        let city = 'İstanbul';
-        if (urlOrText.includes('bursa')) city = 'Bursa';
-        else if (urlOrText.includes('ankara') || urlOrText.includes('odtu')) city = 'Ankara';
-        else if (urlOrText.includes('mugla') || urlOrText.includes('muğla')) city = 'Muğla';
-        else if (urlOrText.includes('izmir')) city = 'İzmir';
-
-        let entitySource = 'Teknoloji Ekosistemi';
-        if (urlOrText.includes('itu') || urlOrText.includes('cekirdek')) entitySource = 'İTÜ Çekirdek Kuluçka';
-        else if (urlOrText.includes('btm')) entitySource = 'BTM İstanbul';
-        else if (urlOrText.includes('webrazzi')) entitySource = 'Webrazzi Girişim Haberleri';
-
-        discoveredItems.push(
-          {
-            id: `fallback-1-${Date.now()}`,
-            name: `${entitySource} AI Lab`,
-            titleOrCompany: 'Yapay Zeka & Doğal Dil İşleme Çözümleri',
-            type: 'Startup',
-            category: 'AI & Veri',
-            city,
-            description: `${entitySource} bünyesinde geliştirilen otonom AI modelleri ve analitik platformu.`,
-            website: formattedUrl || 'https://ekosistem.org',
-            stage: 'Seed',
-            lastUpdated: new Date().toISOString().split('T')[0],
-            status: 'pending'
-          },
-          {
-            id: `fallback-2-${Date.now()}`,
-            name: `${city} BioTech Solutions`,
-            titleOrCompany: 'Biyomedikal & Sağlık Teknolojileri',
-            type: 'Startup',
-            category: 'Sağlık & Biyo',
-            city,
-            description: 'Yenilikçi biyotıp cihazları ve yapay zeka destekli tıbbi teşhis yazılımı.',
-            website: formattedUrl || 'https://ekosistem.org',
-            stage: 'Seed',
-            lastUpdated: new Date().toISOString().split('T')[0],
-            status: 'pending'
-          },
-          {
-            id: `fallback-3-${Date.now()}`,
-            name: `${entitySource} Kuluçka Çağrısı`,
-            titleOrCompany: 'Teknoloji Girişimleri Hızlandırma Programı',
-            type: 'Hızlandırıcı & Kuluçka',
-            category: 'SaaS & Yazılım',
-            city,
-            description: 'Erken aşama girişimlere mentörlük, laboratuvar ve tohum yatırım imkanı sunan hızlandırma programı.',
-            website: formattedUrl || 'https://ekosistem.org',
-            stage: 'Pre-seed',
-            lastUpdated: new Date().toISOString().split('T')[0],
-            status: 'pending'
-          }
+        setUrlExtractionError(
+          '⚠️ Girdiğiniz adresten otomatik girişim verisi çekilemedi. Site güvenlik duvarı (Cloudflare vb.) kullanıyor veya içerik JavaScript ile dinamik yükleniyor olabilir. Lütfen sayfa metnini kopyalayıp aşağıdaki "Özel Notlar / Ham Metin" alanına yapıştırın.'
         );
+        setAiExtractedEntities([]);
+      } else {
+        setAiExtractedEntities(discoveredItems);
+        setExtractionStats({
+          pagesCrawled: maxPages,
+          chunksProcessed: Math.max(1, Math.floor(discoveredItems.length / 5))
+        });
+        setUrlExtractionError(null);
       }
-
-      setAiExtractedEntities(discoveredItems);
-      setExtractionStats({
-        pagesCrawled: maxPages,
-        chunksProcessed: Math.max(1, Math.floor(discoveredItems.length / 5))
-      });
-      setUrlExtractionError(null);
 
     } catch (err: any) {
       console.warn('Extraction completed with fallback:', err);

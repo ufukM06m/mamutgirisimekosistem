@@ -214,14 +214,14 @@ const getAi = () => {
       // 4. Line-by-line text parsing for copied text or raw text in HTML
       const plainTextLines = html.split('\n').map(l => l.trim()).filter(l => l.length > 3);
       for (const line of plainTextLines) {
-        // Look for patterns like "1. Name - Description" or "Name: Description" or "Name (Category)"
-        const lineMatch = line.match(/^(?:\d+[\.\)]|\-|\*|\•)?\s*([A-Z0-9\u00C0-\u024F\s\&\.\-]{2,45})\s*[:\-\—\(\=]\s*(.+)$/i);
+        // Look for patterns like "1. Name - Description", "Name: Description", "Name | Category", "• Name - Description"
+        const lineMatch = line.match(/^(?:\d+[\.\)]|\-|\*|\•)?\s*([A-Z0-9\u00C0-\u024F\s\&\.\-]{2,50})\s*[:\-\—\(\=\|]\s*(.+)$/i);
         if (lineMatch) {
           const matchedName = lineMatch[1].trim();
           const matchedDesc = lineMatch[2].trim();
           if (
             matchedName.length >= 2 && matchedName.length <= 60 &&
-            !['ana sayfa', 'iletişim', 'hakkımızda', 'firmalar', 'kategoriler', 'giriş', 'arama', 'menü'].includes(matchedName.toLowerCase())
+            !['ana sayfa', 'iletişim', 'hakkımızda', 'firmalar', 'kategoriler', 'giriş', 'arama', 'menü', 'tüm hakları saklıdır', 'gizlilik politikası'].includes(matchedName.toLowerCase())
           ) {
             rawItems.push({
               name: matchedName,
@@ -234,82 +234,8 @@ const getAi = () => {
         }
       }
 
-      // 5. Smart Domain/Ecosystem Generator Fallback if structural items are few
-      if (rawItems.length < 3) {
-        const lowerUrlOrHtml = `${sourceUrl} ${html}`.toLowerCase();
-        
-        let cityName = 'İstanbul';
-        if (lowerUrlOrHtml.includes('bursa')) cityName = 'Bursa';
-        else if (lowerUrlOrHtml.includes('mugla') || lowerUrlOrHtml.includes('muğla')) cityName = 'Muğla';
-        else if (lowerUrlOrHtml.includes('ankara') || lowerUrlOrHtml.includes('odtu') || lowerUrlOrHtml.includes('hacettepe')) cityName = 'Ankara';
-        else if (lowerUrlOrHtml.includes('izmir') || lowerUrlOrHtml.includes('ege')) cityName = 'İzmir';
-        else if (lowerUrlOrHtml.includes('kocaeli') || lowerUrlOrHtml.includes('gebze')) cityName = 'Kocaeli';
-        else if (lowerUrlOrHtml.includes('antalya')) cityName = 'Antalya';
-
-        let sourceTitle = 'Teknoloji Ekosistemi';
-        if (lowerUrlOrHtml.includes('itu') || lowerUrlOrHtml.includes('cekirdek') || lowerUrlOrHtml.includes('bigbang')) sourceTitle = 'İTÜ Çekirdek Kuluçka';
-        else if (lowerUrlOrHtml.includes('btm')) sourceTitle = 'BTM İstanbul';
-        else if (lowerUrlOrHtml.includes('webrazzi')) sourceTitle = 'Webrazzi Girişim Haberleri';
-        else if (lowerUrlOrHtml.includes('teknopark') || lowerUrlOrHtml.includes('teknokent')) sourceTitle = `${cityName} Teknopark Ar-Ge`;
-
-        // Generate high quality, contextual ecosystem entities
-        const dynamicEntities = [
-          {
-            name: `${sourceTitle} AI Lab`,
-            titleOrCompany: 'Yapay Zeka & Doğal Dil İşleme Çözümleri',
-            type: 'Startup',
-            category: 'AI & Veri',
-            city: cityName,
-            description: `${sourceTitle} bünyesinde geliştirilen büyük dil modelleri ve veri analitiği altyapısı.`,
-            website: sourceUrl,
-            stage: 'Seed'
-          },
-          {
-            name: `${cityName} BioTech Solutions`,
-            titleOrCompany: 'Biyomedikal & Sağlık Teknolojileri',
-            type: 'Startup',
-            category: 'Sağlık & Biyo',
-            city: cityName,
-            description: `${sourceTitle} taranan kayıtları arasında yer alan yeni nesil biyo-sensör ve teşhis cihazı üreticisi.`,
-            website: sourceUrl,
-            stage: 'Erken Aşama'
-          },
-          {
-            name: `CyberShield ${cityName}`,
-            titleOrCompany: 'Siber Tehdit İstihbarat Platformu',
-            type: 'Startup',
-            category: 'Siber Güvenlik',
-            city: cityName,
-            description: 'Kurumsal ağlar için otonom siber güvenlik simülasyonu ve zafiyet analizi yazılımı.',
-            website: sourceUrl,
-            stage: 'Seri A'
-          },
-          {
-            name: `${sourceTitle} Hızlandırma Programı`,
-            titleOrCompany: 'Teknoloji Girişimleri Kuluçka Çağrısı',
-            type: 'Hızlandırma Programı',
-            category: 'SaaS & Yazılım',
-            city: cityName,
-            description: 'Erken aşama teknoloji girişimlerine hibe, mentörlük ve prototip desteği sunan hızlandırma programı.',
-            website: sourceUrl,
-            stage: 'Başvuru Açık'
-          },
-          {
-            name: `${cityName} GreenTech Hub`,
-            titleOrCompany: 'Karbon Nötr & Enerji Verimliliği',
-            type: 'Startup',
-            category: 'İklim & Yeşil Teknoloji',
-            city: cityName,
-            description: 'Yenilenebilir enerji tesisleri için IoT tabanlı güç optimizasyon ve izleme çözümü.',
-            website: sourceUrl,
-            stage: 'Seed'
-          }
-        ];
-        rawItems.push(...dynamicEntities);
-      }
-
     } catch (domErr: any) {
-      console.warn('DOM parser fallback error:', domErr?.message);
+      console.warn('DOM parser error:', domErr?.message);
     }
 
     return deduplicateAndNormalizeEntities(rawItems);
