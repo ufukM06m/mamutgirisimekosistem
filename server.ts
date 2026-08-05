@@ -212,50 +212,46 @@ const getAi = () => {
       });
 
       // 4. Line-by-line text parsing for copied text or raw text in HTML
-      const plainTextLines = html.split('\n').map(l => l.trim()).filter(l => l.length > 3);
+      const plainTextContent = (html || '')
+        .replace(/<style\b[^<]*>([\s\S]*?)<\/style>/gi, '')
+        .replace(/<script\b[^<]*>([\s\S]*?)<\/script>/gi, '')
+        .replace(/<[^>]+>/g, '\n')
+        .replace(/&nbsp;/gi, ' ');
+
+      const plainTextLines = plainTextContent.split('\n').map(l => l.trim()).filter(l => l.length > 3);
       for (const line of plainTextLines) {
-        // Look for patterns like "1. Name - Description", "Name: Description", "Name | Category", "• Name - Description"
-        const lineMatch = line.match(/^(?:\d+[\.\)]|\-|\*|\•)?\s*([A-Z0-9\u00C0-\u024F\s\&\.\-]{2,50})\s*[:\-\—\(\=\|]\s*(.+)$/i);
-        if (lineMatch) {
-          const matchedName = lineMatch[1].trim();
-          const matchedDesc = lineMatch[2].trim();
-          if (
-            matchedName.length >= 2 && matchedName.length <= 60 &&
-            !['ana sayfa', 'iletişim', 'hakkımızda', 'firmalar', 'kategoriler', 'giriş', 'arama', 'menü', 'tüm hakları saklıdır', 'gizlilik politikası'].includes(matchedName.toLowerCase())
-          ) {
-            rawItems.push({
-              name: matchedName,
-              titleOrCompany: matchedDesc.substring(0, 70),
-              type: /fon|yatırım|vc/i.test(line) ? 'Yatırımcı / VC' : (/etkinlik|haber|zirve/i.test(line) ? 'Etkinlik / Haber' : 'Startup'),
-              description: matchedDesc.length > 10 ? matchedDesc : `${matchedName} - Ekosistem kaydı.`,
-              website: sourceUrl
-            });
-          }
+        if (line.startsWith('[') && line.endsWith(']')) continue;
+
+        // Split on colon, dash, bullet, pipe or equal sign
+        const colonIdx = line.indexOf(':');
+        const dashIdx = line.indexOf(' - ');
+        const pipeIdx = line.indexOf(' | ');
+
+        let name = '';
+        let desc = '';
+
+        if (colonIdx > 1 && colonIdx < 60) {
+          name = line.substring(0, colonIdx).replace(/^(?:\d+[\.\)]|\*|\•|\-)?\s*/, '').trim();
+          desc = line.substring(colonIdx + 1).trim();
+        } else if (dashIdx > 1 && dashIdx < 60) {
+          name = line.substring(0, dashIdx).replace(/^(?:\d+[\.\)]|\*|\•|\-)?\s*/, '').trim();
+          desc = line.substring(dashIdx + 3).trim();
+        } else if (pipeIdx > 1 && pipeIdx < 60) {
+          name = line.substring(0, pipeIdx).replace(/^(?:\d+[\.\)]|\*|\•|\-)?\s*/, '').trim();
+          desc = line.substring(pipeIdx + 3).trim();
         }
-      }
 
-      // 5. Broad text block & line parser for pasted notes / text
-      const blocks = (html || '').split(/\n+/).map(b => b.trim()).filter(b => b.length > 5);
-      for (const block of blocks) {
-        if (block.startsWith('[') && block.endsWith(']')) continue;
-        if (block.length < 5 || block.length > 500) continue;
-
-        const parts = block.split(/[:\-\—\•\|]/);
-        if (parts.length >= 2) {
-          const name = parts[0].replace(/^(?:\d+[\.\)]|\*|\•)?\s*/, '').trim();
-          const desc = parts.slice(1).join(' ').trim();
-          if (
-            name.length >= 2 && name.length <= 60 &&
-            !['ana sayfa', 'iletişim', 'hakkımızda', 'firmalar', 'kategoriler', 'giriş', 'arama', 'menü', 'tüm hakları saklıdır', 'gizlilik politikası'].includes(name.toLowerCase())
-          ) {
-            rawItems.push({
-              name,
-              titleOrCompany: desc.substring(0, 70),
-              type: /fon|yatırım|vc/i.test(block) ? 'Yatırımcı / VC' : (/etkinlik|haber|zirve/i.test(block) ? 'Etkinlik / Haber' : 'Startup'),
-              description: desc.length > 10 ? desc : `${name} - Ekosistem kaydı.`,
-              website: sourceUrl || ''
-            });
-          }
+        if (
+          name && name.length >= 2 && name.length <= 65 && desc && desc.length >= 5 &&
+          !['ana sayfa', 'iletişim', 'hakkımızda', 'firmalar', 'kategoriler', 'giriş', 'arama', 'menü', 'tüm hakları saklıdır', 'gizlilik politikası', 'sayfa', 'http', 'https'].includes(name.toLowerCase())
+        ) {
+          rawItems.push({
+            name,
+            titleOrCompany: desc.substring(0, 70),
+            type: /fon|yatırım|vc/i.test(line) ? 'Yatırımcı / VC' : (/etkinlik|haber|zirve/i.test(line) ? 'Etkinlik / Haber' : 'Startup'),
+            description: desc.length > 10 ? desc : `${name} - Ekosistem kaydı.`,
+            website: sourceUrl || ''
+          });
         }
       }
 
@@ -610,7 +606,7 @@ ${notes ? `Kullanıcı Özel Notu / Bağlam: ${notes}` : ''}
 ]
 `;
 
-          const modelsToTry = ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-flash-latest'];
+          const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
           for (const modelName of modelsToTry) {
             try {
               console.log(`Sending chunk ${chunkIdx + 1} to Gemini model: ${modelName}...`);

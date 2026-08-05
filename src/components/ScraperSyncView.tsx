@@ -227,6 +227,58 @@ export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
             }
           });
         }
+
+        // 3. Fallback: Parse plain text lines for pasted notes / raw text (e.g., "VOTLOG: Markaların...")
+        if (discoveredItems.length === 0 && pageHtml) {
+          const textLines = pageHtml
+            .replace(/<style\b[^<]*>([\s\S]*?)<\/style>/gi, '')
+            .replace(/<script\b[^<]*>([\s\S]*?)<\/script>/gi, '')
+            .replace(/<[^>]+>/g, '\n')
+            .split('\n')
+            .map(l => l.trim())
+            .filter(l => l.length > 3);
+
+          textLines.forEach((line, idx) => {
+            const colonIdx = line.indexOf(':');
+            const dashIdx = line.indexOf(' - ');
+            const pipeIdx = line.indexOf(' | ');
+
+            let name = '';
+            let desc = '';
+
+            if (colonIdx > 1 && colonIdx < 60) {
+              name = line.substring(0, colonIdx).replace(/^(?:\d+[\.\)]|\*|\•|\-)?\s*/, '').trim();
+              desc = line.substring(colonIdx + 1).trim();
+            } else if (dashIdx > 1 && dashIdx < 60) {
+              name = line.substring(0, dashIdx).replace(/^(?:\d+[\.\)]|\*|\•|\-)?\s*/, '').trim();
+              desc = line.substring(dashIdx + 3).trim();
+            } else if (pipeIdx > 1 && pipeIdx < 60) {
+              name = line.substring(0, pipeIdx).replace(/^(?:\d+[\.\)]|\*|\•|\-)?\s*/, '').trim();
+              desc = line.substring(pipeIdx + 3).trim();
+            }
+
+            if (
+              name && name.length >= 2 && name.length <= 65 && desc && desc.length >= 5 &&
+              !seenNames.has(name.toLowerCase()) &&
+              !['ana sayfa', 'iletişim', 'hakkımızda', 'firmalar', 'kategoriler', 'giriş', 'arama', 'menü', 'tüm hakları saklıdır', 'gizlilik politikası', 'sayfa', 'http', 'https'].includes(name.toLowerCase())
+            ) {
+              seenNames.add(name.toLowerCase());
+              discoveredItems.push({
+                id: `client-text-${idx}-${Date.now()}`,
+                name,
+                titleOrCompany: desc.substring(0, 70),
+                type: /fon|yatırım|vc/i.test(line) ? 'Yatırımcı (VC)' : 'Startup',
+                category: 'SaaS & Yazılım',
+                city: 'İstanbul',
+                description: desc.length > 10 ? desc : `${name} - Ekosistem kaydı.`,
+                website: formattedUrl || '',
+                stage: 'Seed',
+                lastUpdated: new Date().toISOString().split('T')[0],
+                status: 'pending'
+              });
+            }
+          });
+        }
       }
 
       if (discoveredItems.length === 0) {
