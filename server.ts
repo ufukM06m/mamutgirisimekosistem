@@ -33,24 +33,21 @@ function saveEntitiesToDisk(entities: any[]) {
   }
 }
 
-async function startServer() {
-  const PORT = 3000;
-
-  // Initialize Gemini AI lazily/safely
-  const getAi = () => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY ortam değişkeni tanımlanmamış.');
-    }
-    return new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build'
-        }
+// Initialize Gemini AI lazily/safely
+const getAi = () => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY ortam değişkeni tanımlanmamış.');
+  }
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build'
       }
-    });
-  };
+    }
+  });
+};
 
   // Helper function: Chunk text into overlapping blocks to handle long pages without losing entities
   function chunkTextContent(text: string, chunkSize: number = 11000, overlap: number = 1000): string[] {
@@ -984,6 +981,9 @@ Format:
       return res.status(500).json({ success: false, error: err.message || 'Sunucu üzerinden GitHub commit hatası.' });
     }
   });
+
+async function startServer() {
+  const PORT = 3000;
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
