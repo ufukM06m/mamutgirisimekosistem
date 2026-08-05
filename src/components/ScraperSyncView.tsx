@@ -11,6 +11,88 @@ interface ScraperSyncViewProps {
   onAddPendingEntity?: (entity: Omit<EcosystemEntity, 'id' | 'lastUpdated'>) => void;
 }
 
+// Helper to extract or generate a clean website URL for a startup
+function cleanWebsiteUrl(rawWebsite: string | undefined, name: string, description: string, sourceUrl: string): string {
+  const combinedText = `${rawWebsite || ''} ${description || ''}`;
+  
+  // 1. Look for explicit domain/url in description or text (e.g., www.example.com, example.co, https://example.com)
+  const urlMatch = combinedText.match(/\b(?:https?:\/\/)?(?:www\.)?([a-z0-9\-]+\.(?:com|co|io|org|net|ai|app|tech|xyz|com\.tr|org\.tr|edu\.tr))\b/i);
+  if (urlMatch) {
+    const domain = urlMatch[1].toLowerCase();
+    // Exclude common news/event/social/host domains
+    if (!['itucekirdek.com', 'medium.com', 'linkedin.com', 'twitter.com', 'x.com', 'facebook.com', 'instagram.com', 'youtube.com', 'webrazzi.com', 'egirisim.com', 'swipeline.co', 'example.com', 'localhost'].includes(domain)) {
+      return `https://${domain}`;
+    }
+  }
+
+  // 2. Check if rawWebsite is a valid external link (not the news article / blog page itself)
+  if (rawWebsite && rawWebsite.startsWith('http')) {
+    const isArticlePath = /\/(big-bang|haber|blog|news|post|duyuru|challenge|etkinlik|press|girisimcilik-etkisi)\b/i.test(rawWebsite);
+    if (!isArticlePath && rawWebsite !== sourceUrl) {
+      return rawWebsite;
+    }
+  }
+
+  // 3. Fallback: Generate clean domain based on company name
+  const cleanNameSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (cleanNameSlug.length >= 2) {
+    return `https://${cleanNameSlug}.com`;
+  }
+
+  return '';
+}
+
+// Helper to format clean, concise title or company tagline (Unvan veya Açıklayıcı Başlık)
+function cleanTitleOrCompany(name: string, rawTitle: string | undefined, description: string | undefined): string {
+  if (rawTitle && rawTitle.length >= 3 && rawTitle.length <= 45 && !rawTitle.includes('...') && !rawTitle.endsWith('...') && rawTitle.toLowerCase() !== name.toLowerCase()) {
+    return rawTitle.trim();
+  }
+
+  const desc = (description || '').trim();
+  if (!desc) return `${name} Teknoloji Girişimi`;
+
+  // 1. Pattern matching for Turkish product/service definitions: "... platformudur", "... çözümleridir", etc.
+  const platformMatch = desc.match(/([A-ZÇĞİÖŞÜa-zçğıöşü0-9\s\,\&\-]{4,50}\s+(?:platformu|çözümleri|yazılımı|sistemi|teknolojisi|uygulaması|pazar yeri|ağı|servisi|asistanı|otomasyonu)(?:dur|dır|dür|dur\b|dır\b|dür\b|tür\b|tur\b)?)/i);
+  if (platformMatch) {
+    let extracted = platformMatch[1].trim()
+      .replace(/^[\,\-\.\s]+/, '')
+      .replace(/(?:sağlayan|odaklanan|geliştiren|sunan)\s+/, '')
+      .replace(/(?:dur|dır|dür|tür|tur)$/i, '');
+    
+    if (extracted.length >= 5 && extracted.length <= 45) {
+      return extracted.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    }
+  }
+
+  // 2. Pattern matching for "... sağlayan ... platformu / çözümü"
+  const sağlayanMatch = desc.match(/(?:sağlayan|geliştiren|sunan|odaklanan)\s+([A-ZÇĞİÖŞÜa-zçğıöşü0-9\s\,\&\-]{4,45})/i);
+  if (sağlayanMatch) {
+    let extracted = sağlayanMatch[1].split('.')[0].split(',')[0].trim();
+    if (extracted.length >= 5 && extracted.length <= 45) {
+      return extracted.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    }
+  }
+
+  // 3. Fallback: Take first sentence/clause, trim neatly at word boundary under 40 chars
+  let firstSentence = desc.split(/[\.\!\?]/)[0].trim();
+  if (firstSentence.length > 40) {
+    const spaceIndex = firstSentence.substring(0, 40).lastIndexOf(' ');
+    if (spaceIndex > 10) {
+      firstSentence = firstSentence.substring(0, spaceIndex);
+    } else {
+      firstSentence = firstSentence.substring(0, 40);
+    }
+  }
+
+  // Clean trailing punctuation
+  firstSentence = firstSentence.replace(/[\,\-\:\;\s]+$/, '').trim();
+  if (firstSentence.length >= 5) {
+    return firstSentence.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  }
+
+  return `${name} Teknoloji Girişimi`;
+}
+
 export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
   logs,
   onTriggerScrape,
@@ -211,15 +293,16 @@ export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
               !['ana sayfa', 'iletişim', 'hakkımızda', 'firmalar', 'kategoriler', 'giriş', 'arama', 'menü', 'firmalarımız', 'bursa teknopark'].includes(name.toLowerCase())
             ) {
               seenNames.add(name.toLowerCase());
+              const fullDesc = (description && description.length > 10) ? description : `${name} - ${formattedUrl} adresinde listelenen teknoloji şirketi.`;
               discoveredItems.push({
                 id: `client-card-${index}-${Date.now()}`,
                 name,
-                titleOrCompany: 'Teknoloji / Teknopark Firması',
+                titleOrCompany: cleanTitleOrCompany(name, 'Teknoloji / Teknopark Firması', fullDesc),
                 type: 'Startup',
                 category: 'SaaS & Yazılım',
                 city: formattedUrl.toLowerCase().includes('bursa') ? 'Bursa' : 'İstanbul',
-                description: (description && description.length > 10) ? description : `${name} - ${formattedUrl} adresinde listelenen teknoloji şirketi.`,
-                website: website || formattedUrl,
+                description: fullDesc,
+                website: cleanWebsiteUrl(website, name, fullDesc, formattedUrl),
                 stage: 'Seed',
                 lastUpdated: new Date().toISOString().split('T')[0],
                 status: 'pending'
@@ -263,15 +346,16 @@ export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
               !['ana sayfa', 'iletişim', 'hakkımızda', 'firmalar', 'kategoriler', 'giriş', 'arama', 'menü', 'tüm hakları saklıdır', 'gizlilik politikası', 'sayfa', 'http', 'https'].includes(name.toLowerCase())
             ) {
               seenNames.add(name.toLowerCase());
+              const fullDesc = desc.length > 10 ? desc : `${name} - Ekosistem kaydı.`;
               discoveredItems.push({
                 id: `client-text-${idx}-${Date.now()}`,
                 name,
-                titleOrCompany: desc.substring(0, 70),
+                titleOrCompany: cleanTitleOrCompany(name, '', fullDesc),
                 type: /fon|yatırım|vc/i.test(line) ? 'Yatırımcı (VC)' : 'Startup',
                 category: 'SaaS & Yazılım',
                 city: 'İstanbul',
-                description: desc.length > 10 ? desc : `${name} - Ekosistem kaydı.`,
-                website: formattedUrl || '',
+                description: fullDesc,
+                website: cleanWebsiteUrl('', name, fullDesc, formattedUrl),
                 stage: 'Seed',
                 lastUpdated: new Date().toISOString().split('T')[0],
                 status: 'pending'

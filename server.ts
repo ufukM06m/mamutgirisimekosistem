@@ -48,6 +48,89 @@ const getAi = () => {
   });
 };
 
+  // Helper to extract or generate a clean website URL for a startup
+  function cleanWebsiteUrl(rawWebsite: string | undefined, name: string, description: string, sourceUrl: string): string {
+    const combinedText = `${rawWebsite || ''} ${description || ''}`;
+    
+    // 1. Look for explicit domain/url in description or text (e.g., www.example.com, example.co, https://example.com)
+    const urlMatch = combinedText.match(/\b(?:https?:\/\/)?(?:www\.)?([a-z0-9\-]+\.(?:com|co|io|org|net|ai|app|tech|xyz|com\.tr|org\.tr|edu\.tr))\b/i);
+    if (urlMatch) {
+      const domain = urlMatch[1].toLowerCase();
+      // Exclude common news/event/social/host domains
+      if (!['itucekirdek.com', 'medium.com', 'linkedin.com', 'twitter.com', 'x.com', 'facebook.com', 'instagram.com', 'youtube.com', 'webrazzi.com', 'egirisim.com', 'swipeline.co', 'example.com', 'localhost'].includes(domain)) {
+        return `https://${domain}`;
+      }
+    }
+
+    // 2. Check if rawWebsite is a valid external link (not the news article / blog page itself)
+    if (rawWebsite && rawWebsite.startsWith('http')) {
+      const isArticlePath = /\/(big-bang|haber|blog|news|post|duyuru|challenge|etkinlik|press|girisimcilik-etkisi)\b/i.test(rawWebsite);
+      if (!isArticlePath && rawWebsite !== sourceUrl) {
+        return rawWebsite;
+      }
+    }
+
+    // 3. Fallback: Generate clean domain based on company name
+    const cleanNameSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (cleanNameSlug.length >= 2) {
+      return `https://${cleanNameSlug}.com`;
+    }
+
+    return '';
+  }
+
+  // Helper to format clean, concise title or company tagline (Unvan veya Açıklayıcı Başlık)
+  function cleanTitleOrCompany(name: string, rawTitle: string | undefined, description: string | undefined): string {
+    // If rawTitle is already short, concise and clean (not a cut-off long sentence)
+    if (rawTitle && rawTitle.length >= 3 && rawTitle.length <= 45 && !rawTitle.includes('...') && !rawTitle.endsWith('...') && rawTitle.toLowerCase() !== name.toLowerCase()) {
+      return rawTitle.trim();
+    }
+
+    const desc = (description || '').trim();
+    if (!desc) return `${name} Teknoloji Girişimi`;
+
+    // 1. Pattern matching for Turkish product/service definitions: "... platformudur", "... çözümleridir", etc.
+    const platformMatch = desc.match(/([A-ZÇĞİÖŞÜa-zçğıöşü0-9\s\,\&\-]{4,50}\s+(?:platformu|çözümleri|yazılımı|sistemi|teknolojisi|uygulaması|pazar yeri|ağı|servisi|asistanı|otomasyonu)(?:dur|dır|dür|dur\b|dır\b|dür\b|tür\b|tur\b)?)/i);
+    if (platformMatch) {
+      let extracted = platformMatch[1].trim()
+        .replace(/^[\,\-\.\s]+/, '')
+        .replace(/(?:sağlayan|odaklanan|geliştiren|sunan)\s+/, '')
+        .replace(/(?:dur|dır|dür|tür|tur)$/i, '');
+      
+      if (extracted.length >= 5 && extracted.length <= 45) {
+        return extracted.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      }
+    }
+
+    // 2. Pattern matching for "... sağlayan ... platformu / çözümü"
+    const sağlayanMatch = desc.match(/(?:sağlayan|geliştiren|sunan|odaklanan)\s+([A-ZÇĞİÖŞÜa-zçğıöşü0-9\s\,\&\-]{4,45})/i);
+    if (sağlayanMatch) {
+      let extracted = sağlayanMatch[1].split('.')[0].split(',')[0].trim();
+      if (extracted.length >= 5 && extracted.length <= 45) {
+        return extracted.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      }
+    }
+
+    // 3. Fallback: Take first sentence/clause, trim neatly at word boundary under 40 chars
+    let firstSentence = desc.split(/[\.\!\?]/)[0].trim();
+    if (firstSentence.length > 40) {
+      const spaceIndex = firstSentence.substring(0, 40).lastIndexOf(' ');
+      if (spaceIndex > 10) {
+        firstSentence = firstSentence.substring(0, spaceIndex);
+      } else {
+        firstSentence = firstSentence.substring(0, 40);
+      }
+    }
+
+    // Clean trailing punctuation
+    firstSentence = firstSentence.replace(/[\,\-\:\;\s]+$/, '').trim();
+    if (firstSentence.length >= 5) {
+      return firstSentence.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    }
+
+    return `${name} Teknoloji Girişimi`;
+  }
+
   // Helper function: Deduplicate and normalize extracted entities across page chunks
   function deduplicateAndNormalizeEntities(rawItems: any[]): any[] {
     const seenNames = new Set<string>();
@@ -62,8 +145,9 @@ const getAi = () => {
     ];
 
     const VALID_TYPES = [
-      'Startup', 'Yatırımcı / VC', 'Etkinlik / Haber',
-      'Hızlandırma Programı', 'Destek / Hibe', 'Kurumsal Ar-Ge'
+      'Startup', 'Girişimci', 'Yatırımcı (VC)', 'Melek Yatırımcı',
+      'Hızlandırıcı & Kuluçka', 'Etkinlik / Haber', 'Hızlandırma Programı',
+      'Destek / Hibe', 'Kurumsal Ar-Ge'
     ];
 
     for (const item of rawItems) {
@@ -100,23 +184,28 @@ const getAi = () => {
       // Normalize Type
       let type = item.type || 'Startup';
       if (!VALID_TYPES.includes(type)) {
-        if (/fon|yatırım|vc|melek|investor|capital/i.test(`${name} ${item.description}`)) type = 'Yatırımcı / VC';
+        if (/melek|angel/i.test(`${name} ${item.description}`)) type = 'Melek Yatırımcı';
+        else if (/fon|yatırım|vc|investor|capital/i.test(`${name} ${item.description}`)) type = 'Yatırımcı (VC)';
+        else if (/girişimci|kurucu|founder|ceo/i.test(`${name} ${item.description}`)) type = 'Girişimci';
+        else if (/kuluçka|hızlandır|accelerator|incubator|çekirdek|btm|workup/i.test(`${name} ${item.description}`)) type = 'Hızlandırıcı & Kuluçka';
         else if (/etkinlik|haber|duyuru|zirve|summit|hackathon|yarışma/i.test(`${name} ${item.description}`)) type = 'Etkinlik / Haber';
-        else if (/kuluçka|hızlandır|accelerator|incubator|çekirdek|btm|workup/i.test(`${name} ${item.description}`)) type = 'Hızlandırma Programı';
-        else if (/hibe|destek|tübitak|kosgeb|çağrı/i.test(`${name} ${item.description}`)) type = 'Destek / Hibe';
-        else if (/kurumsal|ar-ge merkezi|inovasyon lab/i.test(`${name} ${item.description}`)) type = 'Kurumsal Ar-Ge';
         else type = 'Startup';
       }
+
+      const desc = item.description || item.desc || `${name} - ${category} alanında taranan içerik/şirket.`;
+      const cleanTitle = cleanTitleOrCompany(name, item.titleOrCompany || item.title, desc);
+      const cleanWeb = cleanWebsiteUrl(item.website || item.link, name, desc, item.sourceUrl || '');
 
       normalized.push({
         id: `extracted-${normalized.length + 1}-${Date.now()}`,
         name,
-        titleOrCompany: item.titleOrCompany || item.title || `${name} - ${type}`,
+        titleOrCompany: cleanTitle,
         type,
         category,
         city: item.city || 'İstanbul',
-        description: item.description || item.desc || `${name} - ${category} alanında taranan içerik/şirket.`,
-        website: item.website || item.link || '',
+        description: desc,
+        website: cleanWeb,
+        linkedin: item.linkedin || '',
         stage: item.stage || (type === 'Startup' ? 'Seed' : 'Aktif'),
         lastUpdated: new Date().toISOString().split('T')[0],
         status: 'pending'
@@ -577,13 +666,13 @@ Aşağıdaki metin/web sayfasından Türkiye ekosistemindeki TÜM VARLIKLARI (Gi
 ÇOK KRİTİK KURALLAR:
 1. Metindeki TÜM KAYITLARI eksiksiz çıkar. Sayı ne kadar çok olursa olsun hepsini listele!
 2. Her bir kayıt için aşağıdaki alanları EKSİKSİZ VE DETAYLI doldur:
-   - "name": Girişim / Kurum / Etkinlik Adı (örn. "Getir", "İTÜ Çekirdek", "Webrazzi Zirvesi")
-   - "titleOrCompany": Kısa Unvan / İnovasyon Odağı (örn. "Otonom Rota Optimizasyonu" veya "Melek Yatırım Ağı")
+   - "name": Girişim / Kurum / Etkinlik Adı (örn. "Getir", "VOTLOG", "İTÜ Çekirdek")
+   - "titleOrCompany": Girişimin NE YAPTIĞINI özetleyen KISA, MAKSİMUM 3-6 KELİMELİK BAŞLIK/UNVAN (Örn: "Müşteri Deneyimi ve Araştırma Platformu", "Otonom Rota Optimizasyonu"). KESİNLİKLE UZUN CÜMLENİN İLK 70 KARAKTERİNİ KOPYALAMA!
    - "type": Yalnızca şunlardan biri -> 'Startup', 'Yatırımcı / VC', 'Etkinlik / Haber', 'Hızlandırıcı & Kuluçka', 'Destek / Hibe', 'Kurumsal Ar-Ge'
    - "category": Yalnızca şunlardan biri -> 'AI & Veri', 'SaaS & Yazılım', 'FinTech', 'E-Ticaret & Lojistik', 'Oyun & Eğlence', 'Sağlık & Biyo', 'Derin Teknoloji', 'Eğitim (EdTech)', 'İklim & Yeşil Teknoloji', 'Siber Güvenlik', 'Gayrimenkul (PropTech)', 'İnsan Kaynakları (HRTech)', 'Pazarlama (MarTech)', 'Tarım & Gıda (AgriTech)', 'Sigorta (InsurTech)', 'Savunma & Uzay', 'Donanım & IoT', 'Haber & Medya'
-   - "city": Metinde geçen veya girişimin merkez şehri (örn. 'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Kocaeli', 'Antalya', 'Muğla'). Belirtilmemişse Türkiye içi en uygun merkezi yaz.
-   - "description": Metindeki bilgilere dayanarak girişimin/varlığın ne iş yaptığını anlatan en az 1-2 cümlelik açıklayıcı Türkçe metin. Boş bırakma!
-   - "website": Varsa resmi web adresi, yoksa boş string.
+   - "city": Metinde geçen veya girişimin merkez şehri (örn. 'İstanbul', 'Ankara', 'İzmir', 'Bursa').
+   - "description": Metindeki bilgilere dayanarak girişimin ne iş yaptığını anlatan en az 1-2 cümlelik açıklayıcı Türkçe metin.
+   - "website": Girişimin kendi özgün resmi web adresi (Örn: "https://votlog.com"). Metinde veya makalede kendi özel adresi yoksa "https://<girisim-adi>.com" şeklinde temiz alan adı oluştur. KESİNLİKLE HABER/ETKİNLİK MAKALELERİNİN UZUN URL'SİNİ YAZMA!
    - "stage": 'Seed', 'Pre-seed', 'Series A', 'Series B', 'Scale-up' veya 'Fikir'
 
 Metin Bölümü İçeriği:
@@ -606,7 +695,7 @@ ${notes ? `Kullanıcı Özel Notu / Bağlam: ${notes}` : ''}
 ]
 `;
 
-          const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+          const modelsToTry = ['gemini-3.6-flash', 'gemini-flash-latest'];
           for (const modelName of modelsToTry) {
             try {
               console.log(`Sending chunk ${chunkIdx + 1} to Gemini model: ${modelName}...`);
