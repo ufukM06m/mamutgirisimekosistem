@@ -19,7 +19,8 @@ export default function App() {
         const saved = localStorage.getItem('mamuthub_entities');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length >= INITIAL_ENTITIES.length) {
+          // Only use localStorage cache if it has more than 43 items (prevents stale 43-item cache lock)
+          if (Array.isArray(parsed) && parsed.length > 43) {
             return deduplicateAndNormalizeEntities(parsed);
           }
         }
@@ -136,31 +137,105 @@ export default function App() {
 
   const isInitializedRef = React.useRef(false);
 
-  // Initial load from server disk (/api/entities)
+  // Initial load from multiple server/static/GitHub sources with fallback
   React.useEffect(() => {
-    fetch('/api/entities')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          setEntities(prev => {
-            // Keep server data if it's larger or equal, or if prev is just initial mock
-            if (data.data.length >= prev.length || prev.length <= 43) {
-              const normalized = deduplicateAndNormalizeEntities(data.data);
-              if (typeof window !== 'undefined') {
-                localStorage.setItem('mamuthub_entities', JSON.stringify(normalized));
-              }
-              return normalized;
+    let isMounted = true;
+
+    async function loadInitialData() {
+      const cacheBuster = `?_t=${Date.now()}`;
+      let fetchedEntities: EcosystemEntity[] | null = null;
+
+      // 1. Try local Express API /api/entities
+      try {
+        const res = await fetch(`/api/entities${cacheBuster}`);
+        if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const data = await res.json();
+            if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+              fetchedEntities = data.data;
             }
-            return prev;
-          });
+          }
         }
+      } catch (err) {
+        console.warn('Local Express /api/entities not available:', err);
+      }
+
+      // 2. If no data yet, try static /entities.json (Vercel public file output)
+      if (!fetchedEntities || fetchedEntities.length === 0) {
+        try {
+          const res = await fetch(`/entities.json${cacheBuster}`);
+          if (res.ok) {
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.includes('application/json') || res.status === 200) {
+              const data = await res.json();
+              if (Array.isArray(data) && data.length > 0) {
+                fetchedEntities = data;
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('/entities.json fetch fallback error:', err);
+        }
+      }
+
+      // 3. If no data yet, try /public/entities.json
+      if (!fetchedEntities || fetchedEntities.length === 0) {
+        try {
+          const res = await fetch(`/public/entities.json${cacheBuster}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+              fetchedEntities = data;
+            }
+          }
+        } catch (err) {
+          console.warn('/public/entities.json fetch fallback error:', err);
+        }
+      }
+
+      // 4. If GitHub credentials are available and we still have <= 43 items, pull from GitHub
+      if ((!fetchedEntities || fetchedEntities.length <= 43) && githubConfig.owner && githubConfig.repo) {
+        try {
+          const ghRes = await fetchEntitiesFromGitHub(githubConfig);
+          if (ghRes.success && ghRes.data && ghRes.data.length > 0) {
+            if (!fetchedEntities || ghRes.data.length > fetchedEntities.length) {
+              fetchedEntities = ghRes.data;
+            }
+          }
+        } catch (err) {
+          console.warn('GitHub fetch fallback error:', err);
+        }
+      }
+
+      // Apply fetched data if valid
+      if (isMounted && fetchedEntities && fetchedEntities.length > 0) {
+        const normalized = deduplicateAndNormalizeEntities(fetchedEntities);
+        setEntities(prev => {
+          // Replace prev if fetched list is larger or if prev is <= 43 items
+          if (normalized.length >= prev.length || prev.length <= 43) {
+            if (typeof window !== 'undefined') {
+              try {
+                localStorage.setItem('mamuthub_entities', JSON.stringify(normalized));
+              } catch (e) {}
+            }
+            return normalized;
+          }
+          return prev;
+        });
+      }
+
+      if (isMounted) {
         isInitializedRef.current = true;
-      })
-      .catch(err => {
-        console.warn('Could not fetch initial entities from /api/entities:', err);
-        isInitializedRef.current = true;
-      });
-  }, []);
+      }
+    }
+
+    loadInitialData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [githubConfig]);
 
   // Sync entities to localStorage & server disk ONLY after initial load is complete
   React.useEffect(() => {
@@ -168,7 +243,9 @@ export default function App() {
 
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('mamuthub_entities', JSON.stringify(entities));
+        if (entities.length > 0) {
+          localStorage.setItem('mamuthub_entities', JSON.stringify(entities));
+        }
       }
     } catch (e) {
       console.error('Failed to save entities to localStorage:', e);
@@ -180,7 +257,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entities })
       }).catch(err => {
-        console.warn('Could not sync entities to /api/entities:', err);
+        // Ignore silent failure on static Vercel hosts
       });
     }
   }, [entities]);

@@ -95,14 +95,14 @@ export async function fetchEntitiesFromGitHub(config: GitHubConfig): Promise<{
       }
     }
 
-    // Fallback to raw github URLs
+    // Fallback to raw github URLs with cache buster
     for (const p of candidatePaths) {
-      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch || 'main'}/${p}`;
+      const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch || 'main'}/${p}?_t=${Date.now()}`;
       try {
         const rawRes = await fetch(rawUrl);
         if (rawRes.ok) {
           const parsed = await rawRes.json();
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
             return { success: true, data: parsed };
           }
         }
