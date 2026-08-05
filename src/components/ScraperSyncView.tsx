@@ -43,12 +43,11 @@ export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
     setAiExtractedEntities([]);
     setExtractionStats(null);
 
-    try {
-      // 1. Try server API endpoint first
-      let data: any = null;
-      let serverError: string | null = null;
+    // 1. Try server API endpoint first
+    let data: any = null;
+    let serverError: string | null = null;
 
-      try {
+    try {
         const res = await fetch('/api/ai-extract-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -84,7 +83,8 @@ export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
         console.warn('Server API call failed, switching to client-side CORS proxy crawler fallback...', fetchErr);
       }
 
-      // 2. Client-side CORS proxy fallback crawler for live sites
+      try {
+        // 2. Client-side CORS proxy fallback crawler for live sites
       console.log('Running client-side web scraper fallback for URL:', targetUrl);
       
       let pageHtml = '';
@@ -222,153 +222,6 @@ export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
             }
           });
         }
-      }
-
-      // 3. Dynamic Ecosystem Generator: Works for ANY city / university / technopark link
-      const lowerUrl = targetUrl.toLowerCase();
-      let city = 'İstanbul';
-      let ecoName = 'Teknoloji Ekosistemi';
-
-      if (lowerUrl.includes('mugla') || lowerUrl.includes('muğla')) {
-        city = 'Muğla';
-        ecoName = 'Muğla Teknopark';
-      } else if (lowerUrl.includes('bursa') || lowerUrl.includes('uludag') || lowerUrl.includes('uludağ')) {
-        city = 'Bursa';
-        ecoName = 'Bursa Teknopark';
-      } else if (lowerUrl.includes('itu') || lowerUrl.includes('cekirdek') || lowerUrl.includes('çekirdek')) {
-        city = 'İstanbul';
-        ecoName = 'İTÜ Çekirdek';
-      } else if (lowerUrl.includes('btm') || lowerUrl.includes('bilgiyi-ticarilestirme')) {
-        city = 'İstanbul';
-        ecoName = 'BTM İstanbul';
-      } else if (lowerUrl.includes('odtu') || lowerUrl.includes('odtü')) {
-        city = 'Ankara';
-        ecoName = 'ODTÜ Teknokent';
-      } else if (lowerUrl.includes('hacettepe')) {
-        city = 'Ankara';
-        ecoName = 'Hacettepe Teknokent';
-      } else if (lowerUrl.includes('gazi')) {
-        city = 'Ankara';
-        ecoName = 'Gazi Teknopark';
-      } else if (lowerUrl.includes('ege') || lowerUrl.includes('iyte') || lowerUrl.includes('izmir')) {
-        city = 'İzmir';
-        ecoName = 'İzmir Teknopark';
-      } else if (lowerUrl.includes('kocaeli') || lowerUrl.includes('gebze') || lowerUrl.includes('gosb')) {
-        city = 'Kocaeli';
-        ecoName = 'Kocaeli Teknopark';
-      } else if (lowerUrl.includes('sakarya')) {
-        city = 'Sakarya';
-        ecoName = 'Sakarya Teknokent';
-      } else if (lowerUrl.includes('antalya') || lowerUrl.includes('akdeniz')) {
-        city = 'Antalya';
-        ecoName = 'Antalya Teknokent';
-      } else if (lowerUrl.includes('eskisehir') || lowerUrl.includes('eskişehir')) {
-        city = 'Eskişehir';
-        ecoName = 'Eskişehir ATAP Teknopark';
-      } else if (lowerUrl.includes('kayseri') || lowerUrl.includes('erciyes')) {
-        city = 'Kayseri';
-        ecoName = 'Erciyes Teknopark';
-      } else if (lowerUrl.includes('gaziantep')) {
-        city = 'Gaziantep';
-        ecoName = 'Gaziantep Teknopark';
-      } else if (lowerUrl.includes('samsun')) {
-        city = 'Samsun';
-        ecoName = 'Samsun Teknopark';
-      } else if (lowerUrl.includes('trabzon')) {
-        city = 'Trabzon';
-        ecoName = 'Trabzon Teknokent';
-      } else if (lowerUrl.includes('erzurum')) {
-        city = 'Erzurum';
-        ecoName = 'Erzurum ATA Teknokent';
-      } else if (lowerUrl.includes('denizli')) {
-        city = 'Denizli';
-        ecoName = 'Pamukkale Teknokent';
-      } else if (lowerUrl.includes('mersin')) {
-        city = 'Mersin';
-        ecoName = 'Mersin Teknopark';
-      } else {
-        try {
-          const host = new URL(targetUrl.trim()).hostname.replace('www.', '').split('.')[0];
-          const formatted = host.charAt(0).toUpperCase() + host.slice(1);
-          city = formatted;
-          ecoName = `${formatted} Ekosistemi`;
-        } catch(e) {}
-      }
-
-      if (discoveredItems.length < 5) {
-        const baseEcosystemTemplate = [
-          { name: 'Biosis Biyoteknoloji & Medikal', cat: 'Sağlık & Biyo', title: 'Medikal Tanı Kiti & Hastane Yazılımları', desc: 'Tanı kitleri ve biyomedikal cihaz yazılımları.' },
-          { name: 'Siber Güvenlik Teknolojileri', cat: 'Siber Güvenlik', title: 'CAN-Bus Araç Güvenliği & Otonom', desc: 'Siber güvenlik çözümleri ve ağ tarama sistemleri.' },
-          { name: 'Robotaş Mekatronik & AI', cat: 'Derin Teknoloji', title: 'Endüstri 4.0 & Yapay Zeka Kalite Kontrol', desc: 'Görüntü işleme ve fabrika otomasyon yazılımları.' },
-          { name: 'GreenTech İklim Sistemleri', cat: 'İklim & Yeşil Teknoloji', title: 'Karbon Ayak İzi SaaS & Biyomas', desc: 'Endüstriyel Karbon emisyonu takip platformu.' },
-          { name: 'Mobilitat Akıllı Lojistik', cat: 'E-Ticaret & Lojistik', title: 'Dinamik Filo & Rota Optimizasyonu', desc: 'Lojistik filoları için makine öğrenmesi destekli rota çözümü.' },
-          { name: 'Soft İş Yazılımları', cat: 'SaaS & Yazılım', title: 'Bulut Tabanlı ERP & MES Sistemleri', desc: 'Üretim tesisleri için gerçek zamanlı takip yazılımı.' },
-          { name: 'OptiTek Kalıp & Otomasyon', cat: 'Derin Teknoloji', title: 'Dijital İkiz ve Simülasyon', desc: 'İmalat için dijital ikiz ve otomasyon yazılımı.' },
-          { name: 'Genetik & BiyoSağlık Lab', cat: 'Sağlık & Biyo', title: 'Kişiselleştirilmiş Tıp Analizleri', desc: 'Gen dizilim ve veri analitiği platformu.' },
-          { name: 'OtoSensor Akıllı Duyarga', cat: 'Donanım & IoT', title: 'IoT Titreşim ve Sıcaklık Sensörleri', desc: 'Kestirimci bakım için kablosuz IoT duyargaları.' },
-          { name: 'CyberShield Savunma', cat: 'Siber Güvenlik', title: 'Bulut Güvenlik Operasyon Merkezi (SOC)', desc: 'KOBİ’ler için yönetilen siber güvenlik servisi.' },
-          { name: 'Koza EdTech Akademi', cat: 'Eğitim (EdTech)', title: 'Sanal Gerçeklik Destekli Mesleki Eğitim', desc: 'VR ile sanayi çalışanlarına iş güvenliği simülasyonu.' },
-          { name: 'Oyun & Eğlence Stüdyosu', cat: 'Oyun & Eğlence', title: 'Mobil Hyper-Casual & PC Oyunları', desc: 'Global pazara yönelik mobil oyun geliştirme stüdyosu.' },
-          { name: 'AgroTek Akıllı Tarım', cat: 'Tarım & Gıda (AgriTech)', title: 'Dron Destekli Rekolte Tahmini', desc: 'Zirai alan analizi ve sulama optimizasyonu.' },
-          { name: 'FinTek Finans Sistemleri', cat: 'FinTech', title: 'Açık Bankacılık & Mutabakat SaaS', desc: 'Şirketler için konsolide banka hesap yönetimi.' },
-          { name: 'PropTech Gayrimenkul AI', cat: 'Gayrimenkul (PropTech)', title: 'Yapay Zeka Destekli Değerleme', desc: 'Gayrimenkul portföyleri için otomatik ekspertiz ve değer tahmini.' },
-          { name: 'HRMatch Yetenek Platformu', cat: 'İnsan Kaynakları (HRTech)', title: 'Algoritma Tabanlı İşe Alım', desc: 'Yazılımcı ve mühendis yetenek eşleştirme platformu.' },
-          { name: 'MarTech Bulut Pazarlama', cat: 'Pazarlama (MarTech)', title: 'Kişiselleştirilmiş Otomasyon', desc: 'E-ticaret markaları için omichannel pazarlama.' },
-          { name: 'SigortaTek Dijital Hasar', cat: 'Sigorta (InsurTech)', title: 'Mobil Fotoğraf İle Hasar Tespiti', desc: 'Yapay zeka ile araç hasar maliyeti hesaplama.' },
-          { name: 'AeroTek Savunma & Havacılık', cat: 'Savunma & Uzay', title: 'İHA Telemetri & Görüntü Aktarımı', desc: 'Savunma sanayi için yerli yazılım ve uçuş kartları.' },
-          { name: 'SmartCity Trafik AI', cat: 'AI & Veri', title: 'Kameralı Trafik Sinyalizasyon AI', desc: 'Şehir kavşaklarında yoğunluğa göre otomatik ışık süresi yönetimi.' },
-          { name: 'TextileAI Hata Tespit', cat: 'Derin Teknoloji', title: 'Kumaş Hata Tespit AI', desc: 'Dokuma tezgahlarında anlık yapay zeka kamera kontrolü.' },
-          { name: 'CleanWater Arıtma SaaS', cat: 'İklim & Yeşil Teknoloji', title: 'Atıksu Tesisi Sensör Analitiği', desc: 'Organize sanayi bölgeleri için arıtma otomasyonu.' },
-          { name: 'MediConnect Hasta İzleme', cat: 'Sağlık & Biyo', title: 'Uzaktan Kronik Hasta İzleme', desc: 'Giyilebilir cihaz entegrasyonlu hasta takip çözümü.' },
-          { name: 'PayNet Ödeme Teknolojileri', cat: 'FinTech', title: 'Sanal POS & B2B Tahsilat', desc: 'Tedarikçiler için taksitli B2B ödeme altyapısı.' },
-          { name: 'StoreSoft Perakende AI', cat: 'AI & Veri', title: 'Mağaza İçi Müşteri Analizi', desc: 'Kamera görüntüleriyle perakende mağaza optimizasyonu.' },
-          { name: 'CargoMove Otonom Taşıyıcı', cat: 'Derin Teknoloji', title: 'Depo İçi AGV & Otonom Forklift', desc: 'Lojistik depoları için yerli otonom yönlendirmeli araçlar.' },
-          { name: 'ZeroCarbon Enerji Borsa SaaS', cat: 'İklim & Yeşil Teknoloji', title: 'Yenilenebilir Enerji SaaS', desc: 'Güneş santralleri için üretim tahmini ve borsa satışı.' },
-          { name: 'DataCore Veri Ambarı & BI', cat: 'AI & Veri', title: 'Kurumsal Veri Ambarı', desc: 'Büyük veri işleme ve raporlama mimarileri.' },
-          { name: 'CloudSec Tehdit Avcılığı', cat: 'Siber Güvenlik', title: 'SIEM & SOAR Güvenlik', desc: 'Otomatik tehdit engelleme ve olay müdahale.' },
-          { name: 'EduKids Dijital Öğrenme', cat: 'Eğitim (EdTech)', title: 'Çocuklar İçin Kodlama', desc: 'Çocuklar için oyunlaştırılmış kodlama ve matematik dersleri.' },
-          { name: 'PolymerTek Malzeme Ar-Ge', cat: 'Derin Teknoloji', title: 'Biyobozunur Ambalaj Polimeri', desc: 'Çevre dostu ambalaj ham maddesi geliştiren teknoloji firması.' },
-          { name: 'Robotik Kaynak Otomasyon', cat: 'Donanım & IoT', title: 'Kaynak Robotu Yörünge Yazılımı', desc: 'Otomotiv şasileri için otomatik kaynak yolu simülasyonu.' },
-          { name: 'FoodSafe Soğuk Zincir', cat: 'Tarım & Gıda (AgriTech)', title: 'Soğuk Zincir Sıcaklık İzleme', desc: 'Bozulabilir gıda sevkiyatları için lojistik sensörü.' },
-          { name: 'BuildTek BIM Yazılımı', cat: 'Gayrimenkul (PropTech)', title: 'Yapı Bilgi Modelleyici (BIM)', desc: 'İnşaat projeleri için 3D maliyet ve hakediş yazılımı.' },
-          { name: 'InsurAI Hasar Tahmini', cat: 'Sigorta (InsurTech)', title: 'Kasko Risk Skoru Hesaplama', desc: 'Sürücü davranış verileriyle dinamik poliçe fiyatlama.' },
-          { name: 'DroneVision Fotogrametri', cat: 'Savunma & Uzay', title: 'Fotogrametri ve 3D Arazi Modeli', desc: 'Dron fotoğraflarından yüksek hassasiyetli harita üretimi.' },
-          { name: 'WorkFlex Hibrit Ofis SaaS', cat: 'İnsan Kaynakları (HRTech)', title: 'Masa Rezervasyonu SaaS', desc: 'Kurumsal şirketler için esnek çalışma alanı yönetimi.' },
-          { name: 'AdTarget Lokasyon Pazarlama', cat: 'Pazarlama (MarTech)', title: 'Geofencing Reklam', desc: 'Yakınlık odaklı mobil bildirim ve pazarlama.' },
-          { name: 'HealthVR Fizik Tedavi', cat: 'Sağlık & Biyo', title: 'VR Fizyoterapi', desc: 'Fizyoterapi hastaları için oyunlaştırılmış tedavi.' },
-          { name: 'CryptoVault Soğuk Cüzdan', cat: 'FinTech', title: 'Donanım Kripto Cüzdan Yazılımı', desc: 'Kurumsal dijital varlık saklama çözümleri.' },
-          { name: 'SolarCloud GES Verimlilik', cat: 'İklim & Yeşil Teknoloji', title: 'Güneş Paneli Arıza Tespiti', desc: 'Termal dron görüntüleriyle panel çatlak ve toz analizi.' },
-          { name: 'DeepMinded Yapay Zeka', cat: 'AI & Veri', title: 'Doğal Dil İşleme Asistanı', desc: 'Türkçe kurumsal doküman arama ve özetleme AI.' },
-          { name: 'SmartWarehouse WMS', cat: 'E-Ticaret & Lojistik', title: 'Akıllı Depo Yönetim Sistemi', desc: 'Barkod ve RFID entegrasyonlu stok kontrolü.' },
-          { name: 'AutoSec Bağlantılı Araç', cat: 'Siber Güvenlik', title: 'OTA Güncelleme Güvenlik Modülü', desc: 'Araç içi yazılımların kablosuz güvenli güncellenmesi.' },
-          { name: 'GameLabVR Simülatör', cat: 'Oyun & Eğlence', title: 'Yarış ve Uçuş Simülatörleri', desc: 'E-spor ve eğlence merkezleri için mekanik platformlar.' },
-          { name: 'BioFarm Organik Gübre AI', cat: 'Tarım & Gıda (AgriTech)', title: 'Toprak Besin Değeri Sensörü', desc: 'Topraktaki NPK seviyesini anlık ölçen tarım duyargası.' },
-          { name: 'HRPulse Memnuniyet Anketi', cat: 'İnsan Kaynakları (HRTech)', title: 'Çalışan Bağlılığı Analizi', desc: 'Yapay zeka analizli iç iletişim ve feedback yazılımı.' },
-          { name: '3DPrintSanayi Katmanlı Üretim', cat: 'Derin Teknoloji', title: 'Metal 3D Yazıcı Dilimleme', desc: 'Havacılık parçaları için katmanlı imalat CAM programı.' },
-          { name: 'MetaFuar Sanal Etkinlik', cat: 'Oyun & Eğlence', title: '3D Etkinlik ve Fuar Platformu', desc: 'Web tarayıcı üzerinden çalışan avatarlı dijital fuar.' },
-          { name: 'SpaceSat Uydu Komünikasyon', cat: 'Savunma & Uzay', title: 'Küp Uydu Yer İstasyonu', desc: 'Alçak irtifa uyduları için veri indirme servisi.' }
-        ];
-
-        baseEcosystemTemplate.forEach((comp, idx) => {
-          let name = comp.name;
-          if (idx % 6 === 0) name = `${city} ${comp.name}`;
-          if (!seenNames.has(name.toLowerCase())) {
-            seenNames.add(name.toLowerCase());
-            discoveredItems.push({
-              id: `dynamic-eco-${idx + 1}-${Date.now()}`,
-              name,
-              titleOrCompany: comp.title,
-              type: 'Startup',
-              category: comp.cat as CategoryType,
-              city,
-              description: `${name} - ${comp.desc} ${ecoName} Ar-Ge ve inovasyon ekosisteminde taranmıştır.`,
-              website: targetUrl.trim(),
-              stage: idx % 4 === 0 ? 'Seed' : (idx % 3 === 0 ? 'Pre-seed' : 'Growth / Scale-up'),
-              lastUpdated: new Date().toISOString().split('T')[0],
-              status: 'pending'
-            });
-          }
-        });
       }
 
       setAiExtractedEntities(discoveredItems);

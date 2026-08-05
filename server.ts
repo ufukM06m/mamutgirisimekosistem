@@ -6,7 +6,6 @@ import { GoogleGenAI } from '@google/genai';
 import { JSDOM } from 'jsdom';
 import Parser from 'rss-parser';
 import { INITIAL_ENTITIES } from './src/data/mockData';
-import { deduplicateAndNormalizeEntities } from './src/utils/categoryHelper';
 
 export const app = express();
 app.use(express.json({ limit: '10mb' }));
@@ -49,163 +48,174 @@ const getAi = () => {
   });
 };
 
-  // Helper function to detect City and Ecosystem Name from URL/Text dynamically
-  function detectCityAndEcosystem(targetUrl: string = '', textContent: string = '') {
-    const lowerUrl = (targetUrl || '').toLowerCase();
-    const lowerText = (textContent || '').toLowerCase();
-    const combined = `${lowerUrl} ${lowerText}`;
+  // Helper function: Deduplicate and normalize extracted entities across page chunks
+  function deduplicateAndNormalizeEntities(rawItems: any[]): any[] {
+    const seenNames = new Set<string>();
+    const normalized: any[] = [];
 
-    let city = 'İstanbul';
-    let ecosystemName = 'Teknoloji Ekosistemi';
-
-    if (combined.includes('mugla') || combined.includes('muğla')) {
-      city = 'Muğla';
-      ecosystemName = 'Muğla Teknopark';
-    } else if (combined.includes('bursa') || combined.includes('uludag') || combined.includes('uludağ')) {
-      city = 'Bursa';
-      ecosystemName = 'Bursa Teknopark';
-    } else if (combined.includes('itu') || combined.includes('cekirdek') || combined.includes('çekirdek')) {
-      city = 'İstanbul';
-      ecosystemName = 'İTÜ Çekirdek';
-    } else if (combined.includes('btm') || combined.includes('bilgiyi-ticarilestirme')) {
-      city = 'İstanbul';
-      ecosystemName = 'BTM İstanbul';
-    } else if (combined.includes('odtu') || combined.includes('odtü')) {
-      city = 'Ankara';
-      ecosystemName = 'ODTÜ Teknokent';
-    } else if (combined.includes('hacettepe')) {
-      city = 'Ankara';
-      ecosystemName = 'Hacettepe Teknokent';
-    } else if (combined.includes('gazi')) {
-      city = 'Ankara';
-      ecosystemName = 'Gazi Teknopark';
-    } else if (combined.includes('ege') || combined.includes('iyte') || combined.includes('dokuzeylul') || combined.includes('izmir')) {
-      city = 'İzmir';
-      ecosystemName = 'İzmir Teknopark';
-    } else if (combined.includes('kocaeli') || combined.includes('gebze') || combined.includes('gosb') || combined.includes('gtu')) {
-      city = 'Kocaeli';
-      ecosystemName = 'Kocaeli Teknopark';
-    } else if (combined.includes('sakarya')) {
-      city = 'Sakarya';
-      ecosystemName = 'Sakarya Teknokent';
-    } else if (combined.includes('antalya') || combined.includes('akdeniz')) {
-      city = 'Antalya';
-      ecosystemName = 'Antalya Teknokent';
-    } else if (combined.includes('eskisehir') || combined.includes('eskişehir') || combined.includes('atap')) {
-      city = 'Eskişehir';
-      ecosystemName = 'Eskişehir ATAP Teknopark';
-    } else if (combined.includes('kayseri') || combined.includes('erciyes')) {
-      city = 'Kayseri';
-      ecosystemName = 'Erciyes Teknopark';
-    } else if (combined.includes('gaziantep') || combined.includes('antep')) {
-      city = 'Gaziantep';
-      ecosystemName = 'Gaziantep Teknopark';
-    } else if (combined.includes('samsun')) {
-      city = 'Samsun';
-      ecosystemName = 'Samsun Teknopark';
-    } else if (combined.includes('trabzon') || combined.includes('ktu')) {
-      city = 'Trabzon';
-      ecosystemName = 'Trabzon Teknokent';
-    } else if (combined.includes('erzurum') || combined.includes('ata')) {
-      city = 'Erzurum';
-      ecosystemName = 'Erzurum ATA Teknokent';
-    } else if (combined.includes('denizli') || combined.includes('pamukkale')) {
-      city = 'Denizli';
-      ecosystemName = 'Pamukkale Teknokent';
-    } else if (combined.includes('mersin')) {
-      city = 'Mersin';
-      ecosystemName = 'Mersin Teknopark';
-    } else {
-      try {
-        if (targetUrl) {
-          const host = new URL(targetUrl).hostname.replace('www.', '').split('.')[0];
-          const formatted = host.charAt(0).toUpperCase() + host.slice(1);
-          ecosystemName = `${formatted} Ekosistemi`;
-        }
-      } catch (e) {}
-    }
-
-    return { city, ecosystemName };
-  }
-
-  function generateEcosystemStartups(targetUrl: string = '', textContent: string = '') {
-    const { city, ecosystemName } = detectCityAndEcosystem(targetUrl, textContent);
-    const cityPrefix = city === 'Bursa' ? 'Bursa' : (city === 'Muğla' ? 'Muğla' : city);
-
-    const baseList = [
-      { name: 'Biosis Biyoteknoloji & Medikal', category: 'Sağlık & Biyo', titleOrCompany: 'Medikal Tanı Kiti & Hastane Yazılımları', description: 'Tanı kitleri ve biyomedikal cihaz yazılımları.' },
-      { name: 'Uludağ Siber Güvenlik', category: 'Siber Güvenlik', titleOrCompany: 'CAN-Bus Araç Güvenliği & Otonom', description: 'Otomotiv ve otonom sistemler siber güvenlik çözümleri.' },
-      { name: 'Robotaş Mekatronik & AI', category: 'Derin Teknoloji', titleOrCompany: 'Endüstri 4.0 & Yapay Zeka Kalite Kontrol', description: 'Görüntü işleme ve fabrika otomasyon yazılımları.' },
-      { name: 'GreenTech İklim Sistemleri', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Karbon Ayak İzi SaaS & Biyomas', description: 'Endüstriyel Karbon emisyonu takip platformu.' },
-      { name: 'Mobilitat Akıllı Lojistik', category: 'E-Ticaret & Lojistik', titleOrCompany: 'Dinamik Filo & Rota Optimizasyonu', description: 'Lojistik filoları için makine öğrenmesi destekli rota çözümü.' },
-      { name: 'Soft İş Yazılımları', category: 'SaaS & Yazılım', titleOrCompany: 'Bulut Tabanlı ERP & MES Sistemleri', description: 'Üretim tesisleri için gerçek zamanlı takip yazılımı.' },
-      { name: 'OptiTek Kalıp & Otomasyon', category: 'Derin Teknoloji', titleOrCompany: 'Dijital İkiz ve Simülasyon', description: 'Otomotiv kalıp imalatı için dijital ikiz yazılımı.' },
-      { name: 'Genetik & BiyoSağlık', category: 'Sağlık & Biyo', titleOrCompany: 'Kişiselleştirilmiş Tıp Analizleri', description: 'Gen dizilim ve veri analitiği platformu.' },
-      { name: 'OtoSensor Akıllı Sensör', category: 'Donanım & IoT', titleOrCompany: 'IoT Titreşim ve Sıcaklık Sensörleri', description: 'Kestirimci bakım için kablosuz IoT duyargaları.' },
-      { name: 'CyberShield Türkiye', category: 'Siber Güvenlik', titleOrCompany: 'Bulut Güvenlik Operasyon Merkezi (SOC)', description: 'KOBİ’ler için yönetilen siber güvenlik servisi.' },
-      { name: 'Koza EdTech Dijital Akademi', category: 'Eğitim (EdTech)', titleOrCompany: 'Sanal Gerçeklik Destekli Mesleki Eğitim', description: 'VR ile sanayi çalışanlarına iş güvenliği simülasyonu.' },
-      { name: 'Timsah Oyun Stüdyosu', category: 'Oyun & Eğlence', titleOrCompany: 'Mobil Hyper-Casual & PC Oyunları', description: 'Global pazara yönelik mobil oyun geliştirme stüdyosu.' },
-      { name: 'AgroTek Akıllı Tarım', category: 'Tarım & Gıda (AgriTech)', titleOrCompany: 'Dron Destekli Rekolte Tahmini', description: 'Zirai alan analizi ve sulama optimizasyonu.' },
-      { name: 'FinTek Finans Teknolojileri', category: 'FinTech', titleOrCompany: 'Açık Bankacılık & Mutabakat SaaS', description: 'Şirketler için konsolide banka hesap yönetimi.' },
-      { name: 'PropTech Gayrimenkul', category: 'Gayrimenkul (PropTech)', titleOrCompany: 'Yapay Zeka Destekli Değerleme', description: 'Gayrimenkul portföyleri için otomatik ekspertiz ve değer tahmini.' },
-      { name: 'HRMatch Yetenek Analitiği', category: 'İnsan Kaynakları (HRTech)', titleOrCompany: 'Algoritma Tabanlı İşe Alım', description: 'Yazılımcı ve mühendis yetenek eşleştirme platformu.' },
-      { name: 'MarTech Cloud Pazarlama', category: 'Pazarlama (MarTech)', titleOrCompany: 'Kişiselleştirilmiş E-Posta & SMS Automation', description: 'E-ticaret markaları için omichannel pazarlama.' },
-      { name: 'SigortaTek Dijital Hasar', category: 'Sigorta (InsurTech)', titleOrCompany: 'Mobil Fotoğraf İle Hasar Tespiti', description: 'Yapay zeka ile araç hasar maliyeti hesaplama.' },
-      { name: 'AeroTek Savunma & Havacılık', category: 'Savunma & Uzay', titleOrCompany: 'İHA Telemetri & Görüntü Aktarımı', description: 'Savunma sanayi için yerli yazılım ve uçuş kartları.' },
-      { name: 'SmartCity Trafik AI', category: 'AI & Veri', titleOrCompany: 'Kameralı Trafik Sinyalizasyon AI', description: 'Şehir kavşaklarında yoğunluğa göre otomatik ışık süresi yönetimi.' },
-      { name: 'TextileAI Kumaş Kalite', category: 'Derin Teknoloji', titleOrCompany: 'Tekstil Kumaş Hata Tespit AI', description: 'Dokuma tezgahlarında anlık yapay zeka kamera kontrolü.' },
-      { name: 'CleanWater Arıtma SaaS', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Atıksu Tesisi Sensör Analitiği', description: 'Organize sanayi bölgeleri için arıtma otomasyonu.' },
-      { name: 'MediConnect Hasta Takip', category: 'Sağlık & Biyo', titleOrCompany: 'Uzaktan Kronik Hasta İzleme', description: 'Giyilebilir cihaz entegrasyonlu hasta takip çözümü.' },
-      { name: 'PayNet Ödeme Sistemleri', category: 'FinTech', titleOrCompany: 'Sanal POS & B2B Tahsilat', description: 'Tedarikçiler için taksitli B2B ödeme altyapısı.' },
-      { name: 'StoreSoft Perakende AI', category: 'AI & Veri', titleOrCompany: 'Mağaza İçi Isı Haritası & Müşteri Analizi', description: 'Kamera görüntüleriyle perakende mağaza optimizasyonu.' },
-      { name: 'CargoMove Otonom Forklift', category: 'Derin Teknoloji', titleOrCompany: 'Depo İçi AGV & Otonom Taşıyıcı', description: 'Lojistik depoları için yerli otonom yönlendirmeli araçlar.' },
-      { name: 'ZeroCarbon Enerji Ticareti', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Yenilenebilir Enerji Piyasası SaaS', description: 'Güneş santralleri için üretim tahmini ve borsa satışı.' },
-      { name: 'DataCore Veri Ambarı', category: 'AI & Veri', titleOrCompany: 'Kurumsal Veri Ambarı & BI', description: 'Büyük veri işleme ve raporlama mimarileri.' },
-      { name: 'CloudSec Tehdit Avcılığı', category: 'Siber Güvenlik', titleOrCompany: 'SIEM & SOAR Siber Güvenlik', description: 'Otomatik tehdit engelleme ve olay müdahale.' },
-      { name: 'EduKids Dijital Öğrenme', category: 'Eğitim (EdTech)', titleOrCompany: 'İlkokul Matematik Gamification', description: 'Çocuklar için oyunlaştırılmış kodlama ve matematik dersleri.' },
-      { name: 'PolymerTek Malzeme Ar-Ge', category: 'Derin Teknoloji', titleOrCompany: 'Biyobozunur Ambalaj Polimeri', description: 'Çevre dostu ambalaj ham maddesi geliştiren teknoloji firması.' },
-      { name: 'Robotik Kaynak Otomasyon', category: 'Donanım & IoT', titleOrCompany: 'Kaynak Robotu Yörünge Yazılımı', description: 'Otomotiv şasileri için otomatik kaynak yolu simülasyonu.' },
-      { name: 'FoodSafe Gıda Hijyen AI', category: 'Tarım & Gıda (AgriTech)', titleOrCompany: 'Soğuk Zincir Sıcaklık İzleme', description: 'Bozulabilir gıda sevkiyatları için lojistik sensörü.' },
-      { name: 'BuildTek BIM Yazılımı', category: 'Gayrimenkul (PropTech)', titleOrCompany: 'Yapı Bilgi Modelleyici (BIM)', description: 'İnşaat projeleri için 3D maliyet ve hakediş yazılımı.' },
-      { name: 'InsurAI Hasar Tahmini', category: 'Sigorta (InsurTech)', titleOrCompany: 'Kasko Risk Skoru Hesaplama', description: 'Sürücü davranış verileriyle dinamik poliçe fiyatlama.' },
-      { name: 'DroneVision Haritalama', category: 'Savunma & Uzay', titleOrCompany: 'Fotogrametri ve 3D Arazi Modeli', description: 'Dron fotoğraflarından yüksek hassasiyetli harita üretimi.' },
-      { name: 'WorkFlex Hibrit Ofis SaaS', category: 'İnsan Kaynakları (HRTech)', titleOrCompany: 'Masa Rezervasyonu & Çalışan Deneyimi', description: 'Kurumsal şirketler için esnek çalışma alanı yönetimi.' },
-      { name: 'AdTarget Lokasyon Pazarlama', category: 'Pazarlama (MarTech)', title: 'Beacons & Geofencing Reklam', description: 'Alışveriş merkezlerinde yakınlık odaklı mobil bildirim.' },
-      { name: 'HealthVR Fizik Tedavi', category: 'Sağlık & Biyo', titleOrCompany: 'Sanal Gerçeklik İle Rehabilitasyon', description: 'Fizyoterapi hastaları için oyunlaştırılmış tedavi.' },
-      { name: 'CryptoVault Soğuk Cüzdan', category: 'FinTech', titleOrCompany: 'Donanım Kripto Cüzdan Yazılımı', description: 'Kurumsal dijital varlık saklama çözümleri.' },
-      { name: 'SolarCloud GES Verimlilik', category: 'İklim & Yeşil Teknoloji', titleOrCompany: 'Güneş Paneli Arıza Tespiti', description: 'Termal dron görüntüleriyle panel çatlak ve toz analizi.' },
-      { name: 'DeepMinded Yapay Zeka', category: 'AI & Veri', titleOrCompany: 'Doğal Dil İşleme (LLM) Asistanı', description: 'Türkçe kurumsal doküman arama ve özetleme AI.' },
-      { name: 'SmartWarehouse WMS', category: 'E-Ticaret & Lojistik', titleOrCompany: 'Akıllı Depo Yönetim Sistemi', description: 'Barkod ve RFID entegrasyonlu stok kontrolü.' },
-      { name: 'AutoSec Bağlantılı Araç', category: 'Siber Güvenlik', titleOrCompany: 'OTA Güncelleme Güvenlik Modülü', description: 'Araç içi yazılımların kablosuz güvenli güncellenmesi.' },
-      { name: 'GameLabVR Oyun Simülatör', category: 'Oyun & Eğlence', titleOrCompany: 'Yarış ve Uçuş Simülation Sistemleri', description: 'E-spor ve eğlence merkezleri için mekanik platformlar.' },
-      { name: 'BioFarm Organik Gübre AI', category: 'Tarım & Gıda (AgriTech)', titleOrCompany: 'Toprak Besin Değeri Sensörü', description: 'Topraktaki NPK seviyesini anlık ölçen tarım duyargası.' },
-      { name: 'HRPulse Memnuniyet Anketi', category: 'İnsan Kaynakları (HRTech)', titleOrCompany: 'Çalışan Bağlılığı ve Nabız Analizi', description: 'Yapay zeka analizli iç iletişim ve feedback yazılımı.' },
-      { name: '3DPrintSanayi Katmanlı Üretim', category: 'Derin Teknoloji', titleOrCompany: 'Metal 3D Yazıcı Dilimleme Yazılımı', description: 'Havacılık parçaları için katmanlı imalat CAM programı.' },
-      { name: 'MetaFuar Sanal Etkinlik', category: 'Oyun & Eğlence', titleOrCompany: '3D Etkinlik ve B2B Fuar Platformu', description: 'Web tarayıcı üzerinden çalışan avatarlı dijital fuar.' },
-      { name: 'SpaceSat Uydu Komünikasyon', category: 'Savunma & Uzay', titleOrCompany: 'Küp Uydu Yer İstasyonu Yazılımı', description: 'Alçak irtifa uyduları için veri indirme servisi.' }
+    const VALID_CATEGORIES = [
+      'AI & Veri', 'SaaS & Yazılım', 'FinTech', 'E-Ticaret & Lojistik',
+      'Oyun & Eğlence', 'Sağlık & Biyo', 'Derin Teknoloji', 'Eğitim (EdTech)',
+      'İklim & Yeşil Teknoloji', 'Siber Güvenlik', 'Gayrimenkul (PropTech)',
+      'İnsan Kaynakları (HRTech)', 'Pazarlama (MarTech)', 'Tarım & Gıda (AgriTech)',
+      'Sigorta (InsurTech)', 'Savunma & Uzay', 'Donanım & IoT', 'Haber & Medya'
     ];
 
-    return baseList.map((item, idx) => {
-      let name = item.name;
-      if (name.includes('Bursa') && cityPrefix !== 'Bursa') {
-        name = name.replace('Bursa', cityPrefix);
-      } else if (!name.toLowerCase().includes(cityPrefix.toLowerCase()) && idx % 7 === 0) {
-        name = `${cityPrefix} ${name}`;
+    const VALID_TYPES = [
+      'Startup', 'Yatırımcı / VC', 'Etkinlik / Haber',
+      'Hızlandırma Programı', 'Destek / Hibe', 'Kurumsal Ar-Ge'
+    ];
+
+    for (const item of rawItems) {
+      if (!item || typeof item !== 'object') continue;
+      
+      let name = (item.name || item.title || item.companyName || '').toString().trim();
+      if (!name || name.length < 2 || name.length > 120) continue;
+      
+      // Filter out navigation/UI text accidentally parsed as entity names
+      const lowerName = name.toLowerCase();
+      if (
+        ['ana sayfa', 'iletişim', 'hakkımızda', 'firmalar', 'kategoriler', 'giriş', 'arama', 'menü', 'firmalarımız', 'kvkk', 'gizlilik', 'sitemap', 'site haritası', 'kayıt ol', 'şifremi unuttum', 'haberler', 'etkinlikler'].includes(lowerName)
+      ) {
+        continue;
       }
 
-      return {
+      if (seenNames.has(lowerName)) continue;
+      seenNames.add(lowerName);
+
+      // Normalize Category
+      let category = item.category || 'SaaS & Yazılım';
+      if (!VALID_CATEGORIES.includes(category)) {
+        if (/ai|yapay|veri|analiz|learning|data/i.test(`${name} ${item.description}`)) category = 'AI & Veri';
+        else if (/biyo|medikal|sağlık|tıp|tanı|health/i.test(`${name} ${item.description}`)) category = 'Sağlık & Biyo';
+        else if (/güvenlik|siber|cyber|soc|threat/i.test(`${name} ${item.description}`)) category = 'Siber Güvenlik';
+        else if (/otonom|robot|derin|sensör|deep/i.test(`${name} ${item.description}`)) category = 'Derin Teknoloji';
+        else if (/enerji|yeşil|karbon|çevre|biyo|climate/i.test(`${name} ${item.description}`)) category = 'İklim & Yeşil Teknoloji';
+        else if (/finans|fintek|pos|ödeme|banka|kredi/i.test(`${name} ${item.description}`)) category = 'FinTech';
+        else if (/tarım|gıda|agri|dron|sulama/i.test(`${name} ${item.description}`)) category = 'Tarım & Gıda (AgriTech)';
+        else if (/haber|medya|etkinlik|zirve|duyuru/i.test(`${name} ${item.description}`)) category = 'Haber & Medya';
+        else category = 'SaaS & Yazılım';
+      }
+
+      // Normalize Type
+      let type = item.type || 'Startup';
+      if (!VALID_TYPES.includes(type)) {
+        if (/fon|yatırım|vc|melek|investor|capital/i.test(`${name} ${item.description}`)) type = 'Yatırımcı / VC';
+        else if (/etkinlik|haber|duyuru|zirve|summit|hackathon|yarışma/i.test(`${name} ${item.description}`)) type = 'Etkinlik / Haber';
+        else if (/kuluçka|hızlandır|accelerator|incubator|çekirdek|btm|workup/i.test(`${name} ${item.description}`)) type = 'Hızlandırma Programı';
+        else if (/hibe|destek|tübitak|kosgeb|çağrı/i.test(`${name} ${item.description}`)) type = 'Destek / Hibe';
+        else if (/kurumsal|ar-ge merkezi|inovasyon lab/i.test(`${name} ${item.description}`)) type = 'Kurumsal Ar-Ge';
+        else type = 'Startup';
+      }
+
+      normalized.push({
+        id: `extracted-${normalized.length + 1}-${Date.now()}`,
         name,
-        category: item.category,
-        titleOrCompany: item.titleOrCompany,
-        type: 'Startup',
-        city,
-        description: `${name} - ${item.description} ${ecosystemName} Ar-Ge ve inovasyon ekosisteminde taranmıştır.`,
-        website: targetUrl || 'https://example.com',
-        stage: idx % 4 === 0 ? 'Seed' : (idx % 3 === 0 ? 'Pre-seed' : 'Growth / Scale-up'),
+        titleOrCompany: item.titleOrCompany || item.title || `${name} - ${type}`,
+        type,
+        category,
+        city: item.city || 'İstanbul',
+        description: item.description || item.desc || `${name} - ${category} alanında taranan içerik/şirket.`,
+        website: item.website || item.link || '',
+        stage: item.stage || (type === 'Startup' ? 'Seed' : 'Aktif'),
         lastUpdated: new Date().toISOString().split('T')[0],
         status: 'pending'
-      };
-    });
+      });
+    }
+
+    return normalized;
+  }
+
+  // Fallback Real HTML Structural Parser: Extracts actual elements directly from fetched HTML when AI is unreachable or yields 0
+  function extractEntitiesFromRawHtml(html: string, sourceUrl: string): any[] {
+    const rawItems: any[] = [];
+    try {
+      const dom = new JSDOM(html, { url: sourceUrl });
+      const { document } = dom.window;
+
+      // 1. JSON-LD Structured Data
+      const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
+      jsonLdScripts.forEach(script => {
+        try {
+          const content = JSON.parse(script.textContent || '');
+          const items = Array.isArray(content) ? content : (content['@graph'] || [content]);
+          for (const entry of items) {
+            if (entry.name && (entry['@type'] === 'Organization' || entry['@type'] === 'LocalBusiness' || entry['@type'] === 'Corporation' || entry['@type'] === 'Event' || entry['@type'] === 'NewsArticle')) {
+              rawItems.push({
+                name: entry.name,
+                titleOrCompany: entry.jobTitle || entry.description?.substring(0, 60) || entry.name,
+                type: entry['@type'] === 'Event' || entry['@type'] === 'NewsArticle' ? 'Etkinlik / Haber' : 'Startup',
+                description: entry.description || `${entry.name} - ${sourceUrl} sayfasında taranmıştır.`,
+                website: entry.url || sourceUrl
+              });
+            }
+          }
+        } catch (e) {}
+      });
+
+      // 2. Table Rows (tr -> td/th)
+      const rows = document.querySelectorAll('tr');
+      rows.forEach(row => {
+        const cells = Array.from(row.querySelectorAll('td, th'));
+        if (cells.length >= 2) {
+          const texts = cells.map(c => c.textContent?.trim() || '').filter(t => t.length > 1);
+          if (texts.length >= 2) {
+            const possibleName = texts[0];
+            const possibleDesc = texts[1];
+            if (possibleName && possibleName.length <= 90 && !/^\d+$/.test(possibleName)) {
+              const link = row.querySelector('a[href^="http"], a[href^="/"]');
+              let href = link?.getAttribute('href') || '';
+              if (href.startsWith('/')) {
+                try { href = new URL(sourceUrl).origin + href; } catch(e) {}
+              }
+
+              rawItems.push({
+                name: possibleName,
+                titleOrCompany: possibleDesc ? possibleDesc.substring(0, 70) : possibleName,
+                type: 'Startup',
+                description: possibleDesc || `${possibleName} - ${sourceUrl} sayfasından çekilmiştir.`,
+                website: href || sourceUrl
+              });
+            }
+          }
+        }
+      });
+
+      // 3. Card Elements & Articles
+      if (rawItems.length < 5) {
+        const cardSelectors = [
+          'article', '.card', '.item', '.firma', '.company', '.firmalar',
+          'div[class*="card"]', 'div[class*="item"]', 'div[class*="firma"]', 'div[class*="post"]', 'li'
+        ];
+        const cards = document.querySelectorAll(cardSelectors.join(', '));
+        cards.forEach(card => {
+          const titleEl = card.querySelector('h1, h2, h3, h4, h5, .title, .name, strong, a');
+          const descEl = card.querySelector('p, .desc, .description, span');
+          const name = titleEl?.textContent?.trim();
+          const desc = descEl?.textContent?.trim();
+
+          if (name && name.length >= 2 && name.length <= 90) {
+            const link = card.querySelector('a[href^="http"], a[href^="/"]');
+            let href = link?.getAttribute('href') || '';
+            if (href.startsWith('/')) {
+              try { href = new URL(sourceUrl).origin + href; } catch(e) {}
+            }
+
+            rawItems.push({
+              name,
+              titleOrCompany: desc ? desc.substring(0, 60) : name,
+              type: /haber|etkinlik|zirve|duyuru/i.test(`${name} ${desc}`) ? 'Etkinlik / Haber' : 'Startup',
+              description: desc && desc.length > 10 ? desc : `${name} - ${sourceUrl} adresinden çekilen kayıt.`,
+              website: href || sourceUrl
+            });
+          }
+        });
+      }
+    } catch (domErr: any) {
+      console.warn('DOM parser fallback error:', domErr?.message);
+    }
+
+    return deduplicateAndNormalizeEntities(rawItems);
   }
 
   // Helper function: Chunk text into overlapping blocks to handle long pages without losing entities
@@ -460,12 +470,19 @@ const getAi = () => {
       // Helper to process a single chunk through Gemini AI
       const extractFromChunk = async (chunkText: string, chunkIdx: number) => {
         const prompt = `
-Aşağıdaki web adresi/sayfaları veya metin içeriğinden (özellikle İTÜ Çekirdek Big Bang, Webrazzi, Hızlandırıcı programları, kuluçka listeleri, girişim dizinleri vb.) Türkiye girişimcilik ekosisteminde yer alan GİRİŞİMLERİN TAMAMINI tespit et ve her birini tek tek ayrıştır. (Bölüm ${chunkIdx + 1} / ${chunks.length})
+Aşağıdaki web adresi/sayfaları veya metin içeriğinden (Teknopark/Teknokent firmaları, Webrazzi haberleri, Etkinlik ve Zirve sayfaları, Hızlandırma/Kuluçka programı listeleri, Yatırımcı/VC portföyleri, TÜBİTAK/KOSGEB hibe çağrıları vb.) Türkiye girişimcilik ve teknoloji ekosisteminde yer alan TÜM VARLIKLARI (Girişim, Yatırımcı, Etkinlik/Haber, Hızlandırma Programı, Destek/Hibe, Kurumsal Ar-Ge) tespit et ve her birini ayrıştır. (Bölüm ${chunkIdx + 1} / ${chunks.length})
 
-ÖNEMLİ KRİTİK KURAL 1: Metinde geçen TÜM GİRİŞİMLERİ EKSİKSİZ VE TAM SIRA İLE ÇIKAR. Sayı ne kadar çok olursa olsun (30, 50, 80 veya 100+ girişim), hiçbirini atlamadan tüm girişim adlarını ve detaylarını listele. Sadece birkaç taneyle yetinme!
+ÖNEMLİ KRİTİK KURAL 1: Metinde geçen TÜM KAYITLARI EKSİKSİZ VE TAM SIRA İLE ÇIKAR. Sayı ne kadar çok olursa olsun (20, 50, 80 veya 200+ kayıt), hiçbirini atlamadan tüm varlık adlarını ve detaylarını listele. Sadece birkaç taneyle yetinme!
 
-ÖNEMLİ KRİTİK KURAL 2 (KATEGORİ): 'category' alanı YALNIZCA VE YALNIZCA AŞAĞIDAKİ LİSTEDEN BİRİ OLMALIDIR. '3D', 'Diğer', 'Genel' vb. izin verilmeyen isimler KESİNLİKLE YAZMA!
-Geçerli Kategori Listesi:
+ÖNEMLİ KRİTİK KURAL 2 (TÜR / TYPE): 'type' alanı YALNIZCA AŞAĞIDAKİ TÜRLERDEN BİRİ OLACAKTIR:
+- 'Startup' (Teknoloji Şirketleri, Ar-Ge Firmaları, Girişimler)
+- 'Yatırımcı / VC' (Venture Capital Fonları, Melek Yatırım Ağları)
+- 'Etkinlik / Haber' (Sektörel Haberler, Zirveler, Yarışmalar, Hackathonlar)
+- 'Hızlandırma Programı' (Kuluçka Merkezleri, Akseleratörler)
+- 'Destek / Hibe' (TÜBİTAK, KOSGEB, Kamu Hibeleri)
+- 'Kurumsal Ar-Ge' (Büyük Kurumsal İnovasyon Merkezleri)
+
+ÖNEMLİ KRİTİK KURAL 3 (KATEGORİ): 'category' alanı YALNIZCA AŞAĞIDAKİ LİSTEDEN BİRİ OLMALIDIR:
 - 'AI & Veri'
 - 'SaaS & Yazılım'
 - 'FinTech'
@@ -483,28 +500,27 @@ Geçerli Kategori Listesi:
 - 'Sigorta (InsurTech)'
 - 'Savunma & Uzay'
 - 'Donanım & IoT'
+- 'Haber & Medya'
 
 Metin Bölümü İçeriği:
 ${chunkText}
 
 ${notes ? `Kullanıcı Özel Notu: ${notes}` : ''}
 
-Lütfen tespit ettiğin TÜM girişimleri derle ve eksik alanları (açıklama, sektör, şehir) internetteki genel bilgilerinle veya akıllı çıkarımlarınla tamamla.
+Lütfen metinde YALNIZCA GERÇEKTEN VAR OLAN TÜM VARLIKLARI ÇIKAR. Metinde geçmeyen hayali isimler UYDURMA.
 ÇIKTI KURALI: SADECE geçerli bir JSON array formatı döndür.
 
 Array eleman formatı:
 [
   {
-    "name": "Şirket/Girişim Adı",
-    "titleOrCompany": "Unvan veya Alanı (örn. Yapay Zeka Tabanlı Pazarlama)",
+    "name": "Şirket/Girişim/Etkinlik Adı",
+    "titleOrCompany": "Unvan veya Kısa Bilgi (örn. Otonom Rota Yazılımı veya 2026 Zirvesi)",
     "type": "Startup",
     "category": "SaaS & Yazılım",
     "city": "İstanbul",
-    "description": "Girişim ve sunduğu çözüm hakkında 1-2 cümlelik kısa Türkçe bilgi",
+    "description": "Sayfa içeriğinden çıkarılan 1-2 cümlelik gerçek Türkçe açıklama",
     "website": "https://...",
-    "stage": "Seed",
-    "teamSize": "1-10",
-    "notes": "Kaynak: ${url || 'Web Taraması'}"
+    "stage": "Seed"
   }
 ]
 `;
@@ -541,19 +557,11 @@ Array eleman formatı:
       );
 
       // Flatten raw results from all chunks
-      const allExtractedItems = chunkResults.flat();
+      let allExtractedItems = chunkResults.flat();
 
       if (allExtractedItems.length === 0) {
-        console.warn('AI call produced 0 items, attempting dynamic ecosystem fallback...');
-        const fallbackEntities = generateEcosystemStartups(url || '', contentToAnalyze);
-
-        return res.json({
-          success: true,
-          count: fallbackEntities.length,
-          pagesCrawled: pagesCrawledCount,
-          chunksProcessed: chunks.length,
-          data: fallbackEntities
-        });
+        console.warn('AI call produced 0 items, parsing raw HTML DOM structure directly for real entities...');
+        allExtractedItems = extractEntitiesFromRawHtml(contentToAnalyze, url || '');
       }
 
       // Deduplicate across chunks and normalize categories & fields
@@ -568,17 +576,19 @@ Array eleman formatı:
       });
 
     } catch (error: any) {
-      console.error('AI Extract Error (fallback triggered):', error);
+      console.error('AI Extract Error:', error);
       
-      const smartFallback = generateEcosystemStartups(req.body?.url || '');
+      const realHtmlFallback = extractEntitiesFromRawHtml(req.body?.rawText || '', req.body?.url || '');
 
       res.json({
         success: true,
-        count: smartFallback.length,
+        count: realHtmlFallback.length,
         pagesCrawled: 1,
         chunksProcessed: 1,
-        data: smartFallback,
-        note: 'AI servisi yanıt veremediği için akıllı ekosistem ayrıştırıcısı kullanıldı.'
+        data: realHtmlFallback,
+        note: realHtmlFallback.length > 0 
+          ? 'Metin içerisindeki gerçek HTML ögeleri ayrıştırıldı.' 
+          : 'Sayfadan taranabilir içerik bulunamadı.'
       });
     }
   });
