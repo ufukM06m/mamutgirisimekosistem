@@ -1,5 +1,22 @@
 [
   {
+    "id": "pub-1785934782875-kfq52xa",
+    "name": "Picus",
+    "titleOrCompany": "Picus Teknoloji",
+    "type": "Startup",
+    "category": "SaaS & Yazılım",
+    "city": "İstanbul",
+    "description": "Siber güvenlik doğrulama ve sürekli saldırı simülasyonu platformu Picus Security yeni yatırım alarak büyümesini sürdürdü.",
+    "website": "https://www.techinside.com/picus-security-yatirim/",
+    "avatarUrl": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&q=80&w=300",
+    "stage": "Seed",
+    "lastUpdated": "2026-08-05 12:59",
+    "status": "active",
+    "submittedAt": "2026-08-05 12:41",
+    "submitterEmail": "rss@mamuthub.com",
+    "notes": "Kaynak Haber: TechInside - Picus Security, Küresel Büyümesini Sürdürmek İçin Seri B Yatırımını Büyüttü (Haber Taraması)"
+  },
+  {
     "name": "Evreka",
     "titleOrCompany": "Akıllı Atık Yönetimi IoT",
     "type": "Startup",
