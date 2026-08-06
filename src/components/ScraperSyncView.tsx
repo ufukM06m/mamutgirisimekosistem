@@ -108,6 +108,7 @@ export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
   const [targetUrl, setTargetUrl] = useState('');
   const [maxPages, setMaxPages] = useState<number>(5);
   const [useHeadless, setUseHeadless] = useState(false);
+  const [firecrawlApiKey, setFirecrawlApiKey] = useState(() => localStorage.getItem('firecrawl_api_key') || '');
   const [customNotes, setCustomNotes] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isExtractingUrl, setIsExtractingUrl] = useState(false);
@@ -115,6 +116,11 @@ export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
   const [aiExtractedEntities, setAiExtractedEntities] = useState<EcosystemEntity[]>([]);
   const [addedEntityIds, setAddedEntityIds] = useState<string[]>([]);
   const [extractionStats, setExtractionStats] = useState<{ pagesCrawled?: number; chunksProcessed?: number } | null>(null);
+
+  const handleFirecrawlKeyChange = (val: string) => {
+    setFirecrawlApiKey(val);
+    localStorage.setItem('firecrawl_api_key', val.trim());
+  };
 
   const handleAiExtractUrl = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +149,7 @@ export const ScraperSyncView: React.FC<ScraperSyncViewProps> = ({
           rawText: customNotes.trim(),
           maxPages,
           useHeadless,
+          firecrawlApiKey: firecrawlApiKey.trim(),
           notes: customNotes.trim()
         })
       });
@@ -688,6 +695,22 @@ jobs:
                   <span>🌐 Derin Headless DOM & JS Sanal Motoru Çalıştır</span>
                   <span className="text-[10px] text-slate-400 font-normal">(Saf React / Client-Side CSR siteleri için önerilir)</span>
                 </label>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[11px] text-amber-300 font-bold flex items-center space-x-1">
+                  <span>🔥 Firecrawl API Key (Cloudflare ve Dinamik Güvenlik Duvarlarını Aşmak İçin):</span>
+                </label>
+                <input
+                  type="password"
+                  placeholder="fc-xxxxxxxxxxxxxxxxxxxxxxxx..."
+                  value={firecrawlApiKey}
+                  onChange={e => handleFirecrawlKeyChange(e.target.value)}
+                  className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Firecrawl.dev hesabınız varsa API key'inizi girebilirsiniz. Key girildiğinde korumalı ve JavaScript ağırlıklı sayfalar Firecrawl engine ile kayıpsız taranır.
+                </p>
               </div>
 
               <div>

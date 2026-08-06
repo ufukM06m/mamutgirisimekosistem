@@ -49,29 +49,59 @@ const getAi = () => {
 };
 
   // Helper to extract or generate a clean website URL for a startup
-  function cleanWebsiteUrl(rawWebsite: string | undefined, name: string, description: string, sourceUrl: string): string {
+  function cleanWebsiteUrl(rawWebsite: string | undefined, name: string, description: string, sourceUrl: string = ''): string {
     const combinedText = `${rawWebsite || ''} ${description || ''}`;
     
-    // 1. Look for explicit domain/url in description or text (e.g., www.example.com, example.co, https://example.com)
-    const urlMatch = combinedText.match(/\b(?:https?:\/\/)?(?:www\.)?([a-z0-9\-]+\.(?:com|co|io|org|net|ai|app|tech|xyz|com\.tr|org\.tr|edu\.tr))\b/i);
-    if (urlMatch) {
-      const domain = urlMatch[1].toLowerCase();
-      // Exclude common news/event/social/host domains
-      if (!['itucekirdek.com', 'medium.com', 'linkedin.com', 'twitter.com', 'x.com', 'facebook.com', 'instagram.com', 'youtube.com', 'webrazzi.com', 'egirisim.com', 'swipeline.co', 'example.com', 'localhost'].includes(domain)) {
-        return `https://${domain}`;
+    // Common news, portal, directory, incubator, social & aggregator domains to filter out
+    const SOURCE_AND_PORTAL_DOMAINS = [
+      'itucekirdek.com', 'webrazzi.com', 'egirisim.com', 'swipeline.co', 'mamuthub.com', 
+      'medium.com', 'linkedin.com', 'twitter.com', 'x.com', 'facebook.com', 'instagram.com', 
+      'youtube.com', 'github.com', 'example.com', 'localhost', 'btm.istanbul', 'teknoparkistanbul.com.tr',
+      'ariintekokent.com.tr', 'farklabs.com', 'workup.com.tr', 'kolektifhouse.co', 'google.com',
+      'apple.com', 'play.google.com', 'apps.apple.com', 'crunchbase.com', 'pitchbook.com', 'wikipedia.org'
+    ];
+
+    // 1. First, search for explicit clean domain inside description or text
+    const urlMatches = combinedText.match(/\b(?:https?:\/\/)?(?:www\.)?([a-z0-9\-]+\.(?:com|co|io|org|net|ai|app|tech|xyz|com\.tr|org\.tr|edu\.tr|dev|me))\b/gi) || [];
+    for (const match of urlMatches) {
+      let cleanDomain = match.toLowerCase().replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+      const domainHost = cleanDomain.split('/')[0];
+      if (!SOURCE_AND_PORTAL_DOMAINS.some(p => domainHost.includes(p))) {
+        return `https://${cleanDomain}`;
       }
     }
 
-    // 2. Check if rawWebsite is a valid external link (not the news article / blog page itself)
+    // 2. Check if rawWebsite itself is a valid direct startup domain (not news/portal/article/directory link)
     if (rawWebsite && rawWebsite.startsWith('http')) {
-      const isArticlePath = /\/(big-bang|haber|blog|news|post|duyuru|challenge|etkinlik|press|girisimcilik-etkisi)\b/i.test(rawWebsite);
-      if (!isArticlePath && rawWebsite !== sourceUrl) {
-        return rawWebsite;
+      try {
+        const parsedRaw = new URL(rawWebsite);
+        const host = parsedRaw.hostname.toLowerCase().replace(/^www\./i, '');
+        const path = parsedRaw.pathname.toLowerCase();
+
+        const isKnownPortal = SOURCE_AND_PORTAL_DOMAINS.some(p => host.includes(p));
+        const isArticleOrDirectoryPath = /\/(big-bang|haber|blog|news|post|duyuru|challenge|etkinlik|press|girisimcilik-etkisi|girisimler|girisim|company|companies|firmalar|firma|directory|detail|view|p|feed|article|articles)\b/i.test(path);
+
+        let sourceHost = '';
+        if (sourceUrl && sourceUrl.startsWith('http')) {
+          try { sourceHost = new URL(sourceUrl).hostname.toLowerCase().replace(/^www\./i, ''); } catch(e){}
+        }
+
+        const isSameAsSourceHost = sourceHost && host === sourceHost;
+
+        if (!isKnownPortal && !isArticleOrDirectoryPath && !isSameAsSourceHost) {
+          return `${parsedRaw.protocol}//${parsedRaw.hostname}`;
+        }
+      } catch (e) {
+        // invalid URL
       }
     }
 
     // 3. Fallback: Generate clean domain based on company name
-    const cleanNameSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanNameSlug = name.toLowerCase()
+      .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+      .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+      .replace(/[^a-z0-9]/g, '');
+
     if (cleanNameSlug.length >= 2) {
       return `https://${cleanNameSlug}.com`;
     }
@@ -132,7 +162,7 @@ const getAi = () => {
   }
 
   // Helper function: Deduplicate and normalize extracted entities across page chunks
-  function deduplicateAndNormalizeEntities(rawItems: any[]): any[] {
+  function deduplicateAndNormalizeEntities(rawItems: any[], defaultSourceUrl: string = ''): any[] {
     const seenNames = new Set<string>();
     const normalized: any[] = [];
 
@@ -194,7 +224,8 @@ const getAi = () => {
 
       const desc = item.description || item.desc || `${name} - ${category} alanında taranan içerik/şirket.`;
       const cleanTitle = cleanTitleOrCompany(name, item.titleOrCompany || item.title, desc);
-      const cleanWeb = cleanWebsiteUrl(item.website || item.link, name, desc, item.sourceUrl || '');
+      const itemSourceUrl = item.sourceUrl || defaultSourceUrl;
+      const cleanWeb = cleanWebsiteUrl(item.website || item.link, name, desc, itemSourceUrl);
 
       normalized.push({
         id: `extracted-${normalized.length + 1}-${Date.now()}`,
@@ -366,8 +397,45 @@ const getAi = () => {
   }
 
   // Helper function: Fetch & clean single page content + extract pagination links & proxy fallbacks for Cloudflare / JS rendering
-  async function fetchPageContent(targetUrl: string, useHeadless: boolean = false): Promise<{ text: string; paginationUrls: string[] }> {
+  async function fetchPageContent(targetUrl: string, useHeadless: boolean = false, firecrawlApiKey?: string): Promise<{ text: string; paginationUrls: string[] }> {
     try {
+      // 0. Firecrawl API integration (if API Key provided or configured in env)
+      const fcApiKey = firecrawlApiKey || process.env.FIRECRAWL_API_KEY;
+      if (fcApiKey && fcApiKey.trim().length > 0) {
+        console.log(`[Firecrawl Scraper] Fetching ${targetUrl} via Firecrawl API...`);
+        try {
+          const fcRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${fcApiKey.trim()}`
+            },
+            body: JSON.stringify({
+              url: targetUrl,
+              formats: ['markdown', 'html'],
+              onlyMainContent: false
+            })
+          });
+
+          if (fcRes.ok) {
+            const fcData = await fcRes.json();
+            if (fcData && fcData.success && (fcData.data?.markdown || fcData.data?.html)) {
+              const md = fcData.data.markdown || '';
+              const rawHtml = fcData.data.html || '';
+              console.log(`[Firecrawl Scraper] Success! Retrieved ${md.length} chars markdown for ${targetUrl}`);
+              return {
+                text: `--- SAYFA İÇERİĞİ (Firecrawl Scraped: ${targetUrl}) ---\n${md}\n\n${rawHtml.replace(/<script\b[^<]*>([\s\S]*?)<\/script>/gi, '').replace(/<style\b[^<]*>([\s\S]*?)<\/style>/gi, '')}`,
+                paginationUrls: []
+              };
+            }
+          } else {
+            console.warn(`[Firecrawl Scraper] Firecrawl API call returned status ${fcRes.status}`);
+          }
+        } catch (fcErr: any) {
+          console.warn(`[Firecrawl Scraper] Exception during Firecrawl fetch:`, fcErr?.message);
+        }
+      }
+
       let html = '';
       let isBlockedOrEmpty = false;
 
@@ -608,7 +676,7 @@ const getAi = () => {
   // AI Scraper Route: Crawl and extract startup/investor data from URL or Raw Text with multi-page support & chunking
   app.post('/api/ai-extract-url', async (req, res) => {
     try {
-      const { url, rawText, notes, maxPages = 5, useHeadless = false } = req.body;
+      const { url, rawText, notes, maxPages = 5, useHeadless = false, firecrawlApiKey } = req.body;
       if (!url && !rawText) {
         return res.status(400).json({ success: false, error: 'URL veya metin girilmelidir.' });
       }
@@ -618,7 +686,7 @@ const getAi = () => {
 
       if (url) {
         console.log(`Starting web crawl for: ${url} (Max Pages requested: ${maxPages}, Headless Mode: ${useHeadless})`);
-        const primaryResult = await fetchPageContent(url, useHeadless);
+        const primaryResult = await fetchPageContent(url, useHeadless, firecrawlApiKey);
         contentToAnalyze += `\n\n${primaryResult.text}`;
         pagesCrawledCount++;
 
@@ -638,7 +706,7 @@ const getAi = () => {
         if (pagesToFetch.length > 0) {
           console.log(`Discovered ${pagesToFetch.length} additional paginated pages to fetch...`);
           const extraResults = await Promise.all(
-            pagesToFetch.map(pageUrl => fetchPageContent(pageUrl, useHeadless))
+            pagesToFetch.map(pageUrl => fetchPageContent(pageUrl, useHeadless, firecrawlApiKey))
           );
 
           for (const extraRes of extraResults) {
@@ -649,7 +717,7 @@ const getAi = () => {
       }
 
       // Step 3: Text Chunking Strategy for long pages (100+ startups)
-      const chunks = chunkTextContent(contentToAnalyze, 12000, 1000);
+      const chunks = chunkTextContent(contentToAnalyze, 20000, 1500);
       console.log(`Content prepared: Total length ${contentToAnalyze.length} chars, split into ${chunks.length} chunks for AI processing.`);
 
       let allExtractedItems: any[] = [];
@@ -657,7 +725,7 @@ const getAi = () => {
       try {
         const ai = getAi();
 
-        // Helper to process a single chunk through Gemini AI
+        // Helper to process a single chunk through Gemini AI with retries & valid model selection
         const extractFromChunk = async (chunkText: string, chunkIdx: number) => {
           const prompt = `
 Sen Türkiye teknoloji ve girişimcilik ekosistemi veri analistisin.
@@ -672,7 +740,7 @@ Aşağıdaki metin/web sayfasından Türkiye ekosistemindeki TÜM VARLIKLARI (Gi
    - "category": Yalnızca şunlardan biri -> 'AI & Veri', 'SaaS & Yazılım', 'FinTech', 'E-Ticaret & Lojistik', 'Oyun & Eğlence', 'Sağlık & Biyo', 'Derin Teknoloji', 'Eğitim (EdTech)', 'İklim & Yeşil Teknoloji', 'Siber Güvenlik', 'Gayrimenkul (PropTech)', 'İnsan Kaynakları (HRTech)', 'Pazarlama (MarTech)', 'Tarım & Gıda (AgriTech)', 'Sigorta (InsurTech)', 'Savunma & Uzay', 'Donanım & IoT', 'Haber & Medya'
    - "city": Metinde geçen veya girişimin merkez şehri (örn. 'İstanbul', 'Ankara', 'İzmir', 'Bursa').
    - "description": Metindeki bilgilere dayanarak girişimin ne iş yaptığını anlatan en az 1-2 cümlelik açıklayıcı Türkçe metin.
-   - "website": Girişimin kendi özgün resmi web adresi (Örn: "https://votlog.com"). Metinde veya makalede kendi özel adresi yoksa "https://<girisim-adi>.com" şeklinde temiz alan adı oluştur. KESİNLİKLE HABER/ETKİNLİK MAKALELERİNİN UZUN URL'SİNİ YAZMA!
+   - "website": Girişimin kendi özgün resmi web adresi (Örn: "https://votlog.com"). KESİNLİKLE TARANAN HABER/SİTE/DİZİN SAYFASININ KENDİ URL'SİNİ YAZMA! Metinde veya makalede kendi özel adresi yoksa "https://<girisim-adi>.com" şeklinde temiz alan adı oluştur.
    - "stage": 'Seed', 'Pre-seed', 'Series A', 'Series B', 'Scale-up' veya 'Fikir'
 
 Metin Bölümü İçeriği:
@@ -695,40 +763,70 @@ ${notes ? `Kullanıcı Özel Notu / Bağlam: ${notes}` : ''}
 ]
 `;
 
-          const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+          const modelsToTry = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
           for (const modelName of modelsToTry) {
-            try {
-              console.log(`Sending chunk ${chunkIdx + 1} to Gemini model: ${modelName}...`);
-              const response = await ai.models.generateContent({
-                model: modelName,
-                contents: prompt,
-                config: {
-                  responseMimeType: 'application/json'
+            let attempts = 0;
+            while (attempts < 3) {
+              try {
+                attempts++;
+                console.log(`Sending chunk ${chunkIdx + 1} to Gemini model: ${modelName} (attempt ${attempts})...`);
+                const response = await ai.models.generateContent({
+                  model: modelName,
+                  contents: prompt,
+                  config: {
+                    responseMimeType: 'application/json'
+                  }
+                });
+                const responseText = response.text || '';
+                if (responseText) {
+                  const cleanJsonString = responseText
+                    .replace(/```json/g, '')
+                    .replace(/```/g, '')
+                    .trim();
+                  const parsed = JSON.parse(cleanJsonString);
+                  if (Array.isArray(parsed) && parsed.length > 0) {
+                    console.log(`Gemini ${modelName} extracted ${parsed.length} items from chunk ${chunkIdx + 1}!`);
+                    return parsed;
+                  }
                 }
-              });
-              const responseText = response.text || '';
-              if (responseText) {
-                const cleanJsonString = responseText
-                  .replace(/```json/g, '')
-                  .replace(/```/g, '')
-                  .trim();
-                const parsed = JSON.parse(cleanJsonString);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                  console.log(`Gemini ${modelName} extracted ${parsed.length} items from chunk ${chunkIdx + 1}!`);
-                  return parsed;
+                break; // If no error but empty, exit retry loop
+              } catch (mErr: any) {
+                const errMsg = mErr?.message || String(mErr);
+                const isTransientError = 
+                  mErr?.status === 429 || 
+                  mErr?.status === 503 || 
+                  mErr?.status === 500 || 
+                  errMsg.includes('429') || 
+                  errMsg.includes('503') || 
+                  errMsg.includes('quota') || 
+                  errMsg.includes('RESOURCE_EXHAUSTED') || 
+                  errMsg.includes('UNAVAILABLE') || 
+                  errMsg.includes('high demand');
+
+                console.warn(`Chunk ${chunkIdx + 1} failed on ${modelName} (attempt ${attempts}):`, errMsg);
+                
+                if (isTransientError && attempts < 3) {
+                  const waitMs = attempts * 2000;
+                  console.log(`Transient error / rate limit / 503 high demand encountered. Waiting ${waitMs}ms before retry...`);
+                  await new Promise(r => setTimeout(r, waitMs));
+                } else {
+                  break; // Move to next model or finish
                 }
               }
-            } catch (mErr: any) {
-              console.warn(`Chunk ${chunkIdx + 1} failed on ${modelName}:`, mErr?.message || mErr);
             }
           }
           return [];
         };
 
-        // Run parallel Gemini AI extraction over all chunks
-        const chunkResults = await Promise.all(
-          chunks.map((chunk, idx) => extractFromChunk(chunk, idx))
-        );
+        // Run sequential Gemini AI extraction over chunks with throttle gap
+        const chunkResults: any[][] = [];
+        for (let i = 0; i < chunks.length; i++) {
+          const res = await extractFromChunk(chunks[i], i);
+          chunkResults.push(res);
+          if (i < chunks.length - 1) {
+            await new Promise(r => setTimeout(r, 600));
+          }
+        }
 
         allExtractedItems = chunkResults.flat();
       } catch (aiInitErr) {
@@ -741,7 +839,7 @@ ${notes ? `Kullanıcı Özel Notu / Bağlam: ${notes}` : ''}
       }
 
       // Deduplicate across chunks and normalize categories & fields
-      const cleanItems = deduplicateAndNormalizeEntities(allExtractedItems);
+      const cleanItems = deduplicateAndNormalizeEntities(allExtractedItems, url || '');
 
       res.json({
         success: true,
@@ -754,7 +852,8 @@ ${notes ? `Kullanıcı Özel Notu / Bağlam: ${notes}` : ''}
     } catch (error: any) {
       console.error('AI Extract Error:', error);
       
-      const realHtmlFallback = extractEntitiesFromRawHtml(req.body?.rawText || '', req.body?.url || '');
+      const rawFallback = extractEntitiesFromRawHtml(req.body?.rawText || '', req.body?.url || '');
+      const realHtmlFallback = deduplicateAndNormalizeEntities(rawFallback, req.body?.url || '');
 
       res.json({
         success: true,
@@ -890,19 +989,47 @@ Format:
 `;
 
       const ai = getAi();
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: prompt,
-        config: { responseMimeType: 'application/json' }
-      });
-
-      const responseText = response.text || '{}';
-      const cleanJsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const modelsToTry = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
       let parsed: any = {};
-      try {
-        parsed = JSON.parse(cleanJsonString);
-      } catch (pErr) {
-        console.warn('News analyze JSON parse error:', pErr);
+
+      for (const modelName of modelsToTry) {
+        let attempts = 0;
+        while (attempts < 3) {
+          try {
+            attempts++;
+            const response = await ai.models.generateContent({
+              model: modelName,
+              contents: prompt,
+              config: { responseMimeType: 'application/json' }
+            });
+
+            const responseText = response.text || '{}';
+            const cleanJsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            parsed = JSON.parse(cleanJsonString);
+            break; // Success, break out of retry loop
+          } catch (mErr: any) {
+            const errMsg = mErr?.message || String(mErr);
+            const isTransientError = 
+              mErr?.status === 429 || 
+              mErr?.status === 503 || 
+              mErr?.status === 500 || 
+              errMsg.includes('429') || 
+              errMsg.includes('503') || 
+              errMsg.includes('quota') || 
+              errMsg.includes('RESOURCE_EXHAUSTED') || 
+              errMsg.includes('UNAVAILABLE') || 
+              errMsg.includes('high demand');
+
+            if (isTransientError && attempts < 3) {
+              await new Promise(r => setTimeout(r, 1500 * attempts));
+            } else {
+              break; // Try next model
+            }
+          }
+        }
+        if (parsed?.detectedStartups && Array.isArray(parsed.detectedStartups)) {
+          break; // Got valid response
+        }
       }
 
       res.json({
