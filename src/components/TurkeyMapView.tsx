@@ -60,6 +60,31 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
       });
   }, []);
 
+  // Auto-send dynamic height to parent iframe window for seamless single-page scrolling
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const sendHeight = () => {
+      const height = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 700);
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'MAMUTHUB_RESIZE', height }, '*');
+      }
+    };
+
+    sendHeight();
+    const timer = setTimeout(sendHeight, 400);
+    const interval = setInterval(sendHeight, 2500);
+
+    const observer = new ResizeObserver(() => sendHeight());
+    observer.observe(document.body);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+      observer.disconnect();
+    };
+  }, [activeTab, selectedCity, isEmbedMode, selectedType, selectedCategory]);
+
   // Filtered Entities based on selections
   const filteredEntities = useMemo(() => {
     return entities.filter(item => {
@@ -155,12 +180,12 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
     ? window.location.origin 
     : 'https://mamutgirisimekosistem.vercel.app';
 
-  const iframeEmbedCode = `<!-- MAMUTHUB HARİTA SAYFASI EMBED -->
+  const iframeEmbedCode = `<!-- MAMUTHUB HARİTA & 5 ANALİZ MODU EMBED (Mobil Uyumlu & Dikey Kaydırılabilir) -->
 <iframe 
   id="mamuthub-map-frame" 
   src="${appOrigin}/?embed=true&view=map" 
-  style="width: 100%; border: none; min-height: 800px; overflow: hidden; display: block;" 
-  scrolling="no"
+  style="width: 100%; border: none; min-height: 1100px; display: block; overflow: auto;" 
+  scrolling="auto"
 ></iframe>
 
 <script>
@@ -169,7 +194,7 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
     if (e.data && e.data.type === 'MAMUTHUB_RESIZE') {
       var iframe = document.getElementById('mamuthub-map-frame');
       if (iframe && e.data.height) {
-        iframe.style.height = (e.data.height + 30) + 'px';
+        iframe.style.height = Math.max(e.data.height + 40, 1100) + 'px';
       }
     }
   });
@@ -182,7 +207,27 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
   };
 
   return (
-    <div className={`space-y-6 ${isEmbedMode ? 'p-3 sm:p-5 pb-6 bg-slate-950 text-white rounded-2xl' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
+    <div className={`space-y-5 ${isEmbedMode ? 'p-2 sm:p-4 pb-6 bg-slate-950 text-white rounded-2xl w-full overflow-x-hidden' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
+      
+      {/* Embed Mode Top Header Badge */}
+      {isEmbedMode && (
+        <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950 p-3.5 sm:p-4 rounded-2xl border border-slate-800 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <div>
+              <div className="text-xs font-black text-white uppercase tracking-wider flex items-center space-x-2">
+                <span>mamuthub.com Türkiye Girişimcilik & Yatırım Haritası</span>
+                <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-emerald-500/40">
+                  Canlı Ekosistem
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 font-medium mt-0.5">
+                Aşağıdaki 5 analiz modunu kullanarak Harita, Şehir Karşılaştırma, Isı Haritası ve Teknopark verilerini inceleyebilirsiniz.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Header Banner */}
       {!isEmbedMode && (
@@ -211,6 +256,98 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
           </div>
         </div>
       )}
+
+      {/* Analytical Visualizer Navigation Tabs - Top Priority Controls */}
+      <div className="bg-slate-900/95 p-3.5 sm:p-4 rounded-3xl border border-slate-800 shadow-xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 pb-2 border-b border-slate-800/80">
+          <div className="flex items-center space-x-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="text-xs font-black uppercase tracking-wider text-slate-200">
+              Analiz & Görünüm Modu Seçimi
+            </span>
+            <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+              5 Görünüm Modu
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 font-medium">
+            Tıklayarak harita, şehir karşılaştırma, ısı haritası ve altyapı modları arasında geçiş yapabilirsiniz.
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-1">
+          {[
+            {
+              id: 'map' as VisualizationTab,
+              label: '81 İl Haritası',
+              desc: 'İl bazlı görünüm & liste',
+              icon: Globe,
+              iconColor: 'text-emerald-400',
+            },
+            {
+              id: 'compare' as VisualizationTab,
+              label: 'Şehir Karşılaştırma',
+              desc: 'Yan yana 3 şehir analizi',
+              icon: TrendingUp,
+              iconColor: 'text-indigo-400',
+            },
+            {
+              id: 'heatmap' as VisualizationTab,
+              label: 'Bölgesel Isı Haritası',
+              desc: '7 coğrafi bölge & katsayı',
+              icon: Flame,
+              iconColor: 'text-amber-400',
+            },
+            {
+              id: 'radar' as VisualizationTab,
+              label: 'Sektörel Radar & Akış',
+              desc: 'Aşama aktarımı & küme',
+              icon: Network,
+              iconColor: 'text-teal-400',
+            },
+            {
+              id: 'infrastructure' as VisualizationTab,
+              label: 'Teknopark Radarı',
+              desc: 'TGB & Kuluçka haritası',
+              icon: Building2,
+              iconColor: 'text-pink-400',
+            },
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative p-3 sm:p-3.5 rounded-2xl text-left transition-all duration-200 cursor-pointer flex flex-col justify-between border ${
+                  isActive
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 border-emerald-300 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-400/40 translate-y-[-2px]'
+                    : 'bg-slate-950/80 hover:bg-slate-800/90 text-slate-300 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between space-x-2 mb-2">
+                  <div className={`p-2 rounded-xl ${isActive ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-900 text-slate-300'}`}>
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-slate-950' : tab.iconColor}`} />
+                  </div>
+                  {isActive && (
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-950 text-emerald-400 shadow-sm">
+                      Aktif Mod
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <div className={`text-xs font-black ${isActive ? 'text-slate-950' : 'text-white'}`}>
+                    {tab.label}
+                  </div>
+                  <div className={`text-[10px] mt-0.5 ${isActive ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
+                    {tab.desc}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Stats KPI Overview - Only shown in full view */}
       {!isEmbedMode && (
@@ -251,100 +388,6 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
             <p className="text-xl font-black text-white truncate">
               {sortedCities[0] ? `${sortedCities[0].name} (${sortedCities[0].total})` : '-'}
             </p>
-          </div>
-        </div>
-      )}
-
-      {/* Analytical Visualizer Navigation Tabs - Only shown in full view */}
-      {!isEmbedMode && (
-        <div className="bg-slate-900/95 p-4 rounded-3xl border border-slate-800 shadow-xl space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 pb-2 border-b border-slate-800/80">
-            <div className="flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-xs font-black uppercase tracking-wider text-slate-200">
-                Analiz & Görünüm Modu Seçimi
-              </span>
-              <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                5 Görünüm Modu
-              </span>
-            </div>
-            <span className="text-[11px] text-slate-400 font-medium">
-              Tıklayarak harita, şehir karşılaştırma, ısı haritası ve altyapı modları arasında geçiş yapabilirsiniz.
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-1">
-            {[
-              {
-                id: 'map' as VisualizationTab,
-                label: '81 İl Haritası',
-                desc: 'İl bazlı görünüm & liste',
-                icon: Globe,
-                iconColor: 'text-emerald-400',
-              },
-              {
-                id: 'compare' as VisualizationTab,
-                label: 'Şehir Karşılaştırma',
-                desc: 'Yan yana 3 şehir analizi',
-                icon: TrendingUp,
-                iconColor: 'text-indigo-400',
-              },
-              {
-                id: 'heatmap' as VisualizationTab,
-                label: 'Bölgesel Isı Haritası',
-                desc: '7 coğrafi bölge & katsayı',
-                icon: Flame,
-                iconColor: 'text-amber-400',
-              },
-              {
-                id: 'radar' as VisualizationTab,
-                label: 'Sektörel Radar & Akış',
-                desc: 'Aşama aktarımı & küme',
-                icon: Network,
-                iconColor: 'text-teal-400',
-              },
-              {
-                id: 'infrastructure' as VisualizationTab,
-                label: 'Teknopark Radarı',
-                desc: 'TGB & Kuluçka haritası',
-                icon: Building2,
-                iconColor: 'text-pink-400',
-              },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id;
-              const Icon = tab.icon;
-
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative p-3.5 rounded-2xl text-left transition-all duration-200 cursor-pointer flex flex-col justify-between border ${
-                    isActive
-                      ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 border-emerald-300 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-400/40 translate-y-[-2px]'
-                      : 'bg-slate-950/80 hover:bg-slate-800/90 text-slate-300 border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between space-x-2 mb-2">
-                    <div className={`p-2 rounded-xl ${isActive ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-900 text-slate-300'}`}>
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-slate-950' : tab.iconColor}`} />
-                    </div>
-                    {isActive && (
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-950 text-emerald-400 shadow-sm">
-                        Aktif Mod
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <div className={`text-xs font-black ${isActive ? 'text-slate-950' : 'text-white'}`}>
-                      {tab.label}
-                    </div>
-                    <div className={`text-[10px] mt-0.5 ${isActive ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
-                      {tab.desc}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
           </div>
         </div>
       )}
@@ -637,7 +680,7 @@ export const TurkeyMapView: React.FC<TurkeyMapViewProps> = ({ entities, isEmbedM
 
             {/* City Entities List */}
             {activeCityData && activeCityData.entities.length > 0 ? (
-              <div className="space-y-2 max-h-[210px] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[320px] sm:max-h-[420px] overflow-y-auto pr-1">
                 {activeCityData.entities.map(item => (
                   <div key={item.id} className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all space-y-1">
                     <div className="flex items-center justify-between">
