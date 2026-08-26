@@ -9968,13 +9968,17 @@
     "category": "Savunma & Uzay",
     "city": "İstanbul",
     "description": "İnsansız hava araçları üreticisi Baykar Teknoloji lideri.",
-    "website": "baykartech.com",
+    "website": "https://baykartech.com/tr/",
     "avatarUrl": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&q=80&w=300",
     "stage": "Olgun",
     "teamSize": "1000+",
     "id": "ent-1786055305892-nf5ybvg",
     "status": "active",
-    "lastUpdated": "2026-08-06 22:28"
+    "lastUpdated": "2026-08-26 18:50",
+    "linkedin": "",
+    "twitter": "",
+    "portfolioCount": 0,
+    "featured": true
   },
   {
     "name": "Onur Kardeş",
