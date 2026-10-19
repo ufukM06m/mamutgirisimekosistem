@@ -635,6 +635,15 @@ export const INITIAL_ENTITIES: EcosystemEntity[] = [
 
 export const INITIAL_SCRAPER_LOGS: ScraperLog[] = [
   {
+    id: 'log-1792398233329',
+    timestamp: '2026-10-19 08:23',
+    source: 'GitHub Action Bot (Otomatik)',
+    status: 'Başarılı',
+    itemsFetched: 3,
+    durationMs: 380,
+    memoryUsageMb: 42
+  },
+  {
     id: 'log-1792309323759',
     timestamp: '2026-10-18 07:42',
     source: 'GitHub Action Bot (Otomatik)',
